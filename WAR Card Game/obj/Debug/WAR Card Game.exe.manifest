@@ -42,14 +42,14 @@
     </dependentAssembly>
   </dependency>
   <dependency>
-    <dependentAssembly dependencyType="install" allowDelayedBinding="true" codebase="WAR Card Game.exe" size="2683352">
+    <dependentAssembly dependencyType="install" allowDelayedBinding="true" codebase="WAR Card Game.exe" size="2665432">
       <assemblyIdentity name="WAR Card Game" version="1.0.0.0" language="neutral" processorArchitecture="msil" />
       <hash>
         <dsig:Transforms>
           <dsig:Transform Algorithm="urn:schemas-microsoft-com:HashTransforms.Identity" />
         </dsig:Transforms>
         <dsig:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha256" />
-        <dsig:DigestValue>/npDA0y5I9p9tj5sSv/4Y0AU4lQDjdPPxkrDck9UoTs=</dsig:DigestValue>
+        <dsig:DigestValue>XV2YHOx6L7Aq4hwMTJOPrPZKBlzR6lGRYj4C2D2Aq0c=</dsig:DigestValue>
       </hash>
     </dependentAssembly>
   </dependency>

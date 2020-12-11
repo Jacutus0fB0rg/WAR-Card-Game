@@ -56,12 +56,14 @@ namespace WAR_Card_Game
             this.compareCardsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.autoPlayGameToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.resetGameToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.stopAutoPlayToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.lblTopPlayer = new System.Windows.Forms.Label();
             this.lblBottomPlayer = new System.Windows.Forms.Label();
             this.lblGameDuration = new System.Windows.Forms.Label();
             this.lblRound = new System.Windows.Forms.Label();
             this.lblCommentary = new System.Windows.Forms.Label();
             this.lblGameStopTime = new System.Windows.Forms.Label();
+            this.exitProgramToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.cntxtMnStrpCardControl.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -189,9 +191,11 @@ namespace WAR_Card_Game
             this.joinDeckToolStripMenuItem,
             this.startWARCardGameToolStripMenuItem,
             this.autoPlayGameToolStripMenuItem,
-            this.resetGameToolStripMenuItem});
+            this.resetGameToolStripMenuItem,
+            this.stopAutoPlayToolStripMenuItem,
+            this.exitProgramToolStripMenuItem});
             this.cntxtMnStrpCardControl.Name = "cntxtMnStrpCardControl";
-            this.cntxtMnStrpCardControl.Size = new System.Drawing.Size(235, 224);
+            this.cntxtMnStrpCardControl.Size = new System.Drawing.Size(235, 290);
             // 
             // gatherDeckToolStripMenuItem
             // 
@@ -387,6 +391,16 @@ namespace WAR_Card_Game
             this.resetGameToolStripMenuItem.Visible = false;
             this.resetGameToolStripMenuItem.Click += new System.EventHandler(this.ResetGame);
             // 
+            // stopAutoPlayToolStripMenuItem
+            // 
+            this.stopAutoPlayToolStripMenuItem.Enabled = false;
+            this.stopAutoPlayToolStripMenuItem.Name = "stopAutoPlayToolStripMenuItem";
+            this.stopAutoPlayToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Alt | System.Windows.Forms.Keys.P)));
+            this.stopAutoPlayToolStripMenuItem.Size = new System.Drawing.Size(234, 22);
+            this.stopAutoPlayToolStripMenuItem.Text = "Stop AutoPlay";
+            this.stopAutoPlayToolStripMenuItem.Visible = false;
+            this.stopAutoPlayToolStripMenuItem.Click += new System.EventHandler(this.StopAutoPlaying);
+            // 
             // lblTopPlayer
             // 
             this.lblTopPlayer.AutoSize = true;
@@ -465,6 +479,14 @@ namespace WAR_Card_Game
             this.lblGameStopTime.Text = "Game Stop Time: ";
             this.lblGameStopTime.Visible = false;
             // 
+            // exitProgramToolStripMenuItem
+            // 
+            this.exitProgramToolStripMenuItem.Name = "exitProgramToolStripMenuItem";
+            this.exitProgramToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Alt | System.Windows.Forms.Keys.X)));
+            this.exitProgramToolStripMenuItem.Size = new System.Drawing.Size(234, 22);
+            this.exitProgramToolStripMenuItem.Text = "Exit Program";
+            this.exitProgramToolStripMenuItem.Click += new System.EventHandler(this.ExitProgram);
+            // 
             // MainFormWAR
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -528,6 +550,8 @@ namespace WAR_Card_Game
         private System.Windows.Forms.ToolStripMenuItem autoPlayGameToolStripMenuItem;
         private System.Windows.Forms.Label lblGameStopTime;
         private System.Windows.Forms.ToolStripMenuItem resetGameToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem stopAutoPlayToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem exitProgramToolStripMenuItem;
     }
 }
 

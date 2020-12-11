@@ -78,6 +78,8 @@ namespace WAR_Card_Game
 
         ControlMode controlMode = ControlMode.UserGame;
 
+        bool awaitingReset = false, isAutoPlaying = false;
+
         public MainFormWAR()
         {
             InitializeComponent();
@@ -535,14 +537,23 @@ namespace WAR_Card_Game
                 lblOutput.Text = "Instructions: Right click to select options!\nSelected card is " + selectedCardString;
             else if (controlMode == ControlMode.UserGame)
             {
-                if (isGamePlaying == false)
-                    lblOutput.Text = "Instructions: Right click and select the \"Start WAR Card Game \"option!";
-                else
+                // trying to see if this causes the changes to take place
+                if (isGamePlaying == false && awaitingReset == false)
+                    lblOutput.Text = "Instructions: Right click and select the \"Start WAR Card Game \"option to play the game manually!" +
+                        "\nSelect \"AutoPlay Game\" for computer controlled game play!";
+                else if (isGamePlaying == true && awaitingReset == false)
                 {
-                    if (compareCardsToolStripMenuItem.Enabled == false)
-                        lblOutput.Text = "Instructions: Right click, select \"Play WAR Card Game\" then select \"Deal Cards\"!";
-                    else if (dealCardsToolStripMenuItem.Enabled == false)
-                        lblOutput.Text = "Instructions: Right click, select \"Play WAR Card Game\" then select \"Compare Cards\"!";
+                    if (isAutoPlaying == false)
+                    {
+                        if (compareCardsToolStripMenuItem.Enabled == false)
+                            lblOutput.Text = "Instructions: Right click, select \"Play WAR Card Game\" then select \"Deal Cards\"!";
+                        else if (dealCardsToolStripMenuItem.Enabled == false)
+                            lblOutput.Text = "Instructions: Right click, select \"Play WAR Card Game\" then select \"Compare Cards\"!";
+                    }
+                    else 
+                    {
+                        lblOutput.Text = "Instructions: Right click and select the \"Stop AutoPlay\" option to return to manual game mode!";
+                    }
                 }
             }
         }
@@ -979,66 +990,97 @@ namespace WAR_Card_Game
             return duration;
         }
 
+        private void StopAutoPlaying(object sender, EventArgs e)
+        {
+            isAutoPlaying = false;
+        }
+
         async private void AutoPlayGame(object sender, EventArgs e)
         {
             int i;
-            if (isGamePlaying == false)
+
+            if (isAutoPlaying == false)
             {
-                // if game hasn't started yet
-                i = 1;
+                isAutoPlaying = true;
+                UpdateOutputLabel();
+                // reconfigure context menu
+                autoPlayGameToolStripMenuItem.Enabled = false;
+                autoPlayGameToolStripMenuItem.Visible = false;
+                stopAutoPlayToolStripMenuItem.Enabled = true;
+                stopAutoPlayToolStripMenuItem.Visible = true;
 
-                PlayWAR(sender, e);
+                startWARCardGameToolStripMenuItem.Visible = false; 
 
-                while (i <= 10000 && isGamePlaying == true)
+                if (isGamePlaying == false)
                 {
-                    DealTheCards(sender, e);
-                    int milliseconds = 100;
-                    //Thread.Sleep(milliseconds);
-                    await Task.Delay(milliseconds);
-                    i++;
-                    if (isGamePlaying == true)
-                    {
-                        CompareTheCards(sender, e);
+                    // if game hasn't started yet
+                    i = 1;
 
+                    PlayWAR(sender, e);
+
+                    while (i <= 10000 && isGamePlaying == true && isAutoPlaying == true)
+                    {
+                        DealTheCards(sender, e);
+                        int milliseconds = 100;
+                        //Thread.Sleep(milliseconds);
+                        await Task.Delay(milliseconds);
+                        i++;
+                        if (isGamePlaying == true)
+                        {
+                            CompareTheCards(sender, e);
+
+                        }
                     }
                 }
-            }
-            else
-            {
-                // if game has started
-                // finish the current round
-
-                // if the current round  is in the "deal the cards" phase
-                if (dealCardsToolStripMenuItem.Enabled == true)
+                else
                 {
-                    DealTheCards(sender, e);
-                    if (isGamePlaying == true)
+                    // if game has started
+                    // finish the current round
+
+                    // if the current round  is in the "deal the cards" phase
+                    if (dealCardsToolStripMenuItem.Enabled == true)
                     {
+                        DealTheCards(sender, e);
+                        if (isGamePlaying == true)
+                        {
+                            CompareTheCards(sender, e);
+
+                        }
+                    }
+                    else if (compareCardsToolStripMenuItem.Enabled == true)
+                        // if the current round is in the "compare the cards" phase
                         CompareTheCards(sender, e);
 
-                    }
-                }
-                else if (compareCardsToolStripMenuItem.Enabled == true)
-                    // if the current round is in the "compare the cards" phase
-                    CompareTheCards(sender, e);
+                    i = 1;
 
-                i = 1;
-
-                while (i <= 10000 && isGamePlaying == true)
-                {
-                    DealTheCards(sender, e);
-                    int milliseconds = 100;
-                    //Thread.Sleep(milliseconds);
-                    await Task.Delay(milliseconds);
-                    i++;
-                    if (isGamePlaying == true)
+                    while (i <= 10000 && isGamePlaying == true && isAutoPlaying == true)
                     {
-                        CompareTheCards(sender, e);
+                        DealTheCards(sender, e);
+                        int milliseconds = 100;
+                        //Thread.Sleep(milliseconds);
+                        await Task.Delay(milliseconds);
+                        i++;
+                        if (isGamePlaying == true)
+                        {
+                            CompareTheCards(sender, e);
 
+                        }
                     }
                 }
 
+                isAutoPlaying = false;
+                UpdateOutputLabel();
+                // reconfigure context menu
+                if (awaitingReset == false)
+                {
+                    autoPlayGameToolStripMenuItem.Enabled = true;
+                    autoPlayGameToolStripMenuItem.Visible = true;
+                    startWARCardGameToolStripMenuItem.Visible = true;
+                }
+                stopAutoPlayToolStripMenuItem.Enabled = false;
+                stopAutoPlayToolStripMenuItem.Visible = false;
 
+                
             }
             //MessageBox.Show("Number of rounds = " + i);
             //resetGame();
@@ -1513,64 +1555,75 @@ namespace WAR_Card_Game
             resetGameToolStripMenuItem.Visible = true;
 
             lblOutput.Text = "Instructions: To play again, right click and select the \"Reset Game\" option!";
+
+            awaitingReset = true;
         }
 
         private void ResetGame(object sender, EventArgs e)
         {
-            startWARCardGameToolStripMenuItem.Text = "Start WAR Card Game";
+            if (awaitingReset == true)
+            {
+                startWARCardGameToolStripMenuItem.Text = "Start WAR Card Game";
 
-            dealCardsToolStripMenuItem.Enabled = false;
-            dealCardsToolStripMenuItem.Visible = false;
-            compareCardsToolStripMenuItem.Enabled = false;
-            compareCardsToolStripMenuItem.Visible = false;
+                dealCardsToolStripMenuItem.Enabled = false;
+                dealCardsToolStripMenuItem.Visible = false;
+                compareCardsToolStripMenuItem.Enabled = false;
+                compareCardsToolStripMenuItem.Visible = false;
 
-            // transfer to the deck 
-            // top player's cards
-            if (deckOfPlayingCards[topPlayerGroupIndex].getCount() > 0)
-                TransferFirstGroupOfCardsToSecondGroup(topPlayerGroupIndex, deckGroupIndex);
+                // transfer to the deck 
+                // top player's cards
+                if (deckOfPlayingCards[topPlayerGroupIndex].getCount() > 0)
+                    TransferFirstGroupOfCardsToSecondGroup(topPlayerGroupIndex, deckGroupIndex);
 
-            // top player's won cards
-            if (deckOfPlayingCards[topPlayerWonCardsGroupIndex].getCount() > 0)
-                TransferFirstGroupOfCardsToSecondGroup(topPlayerWonCardsGroupIndex, deckGroupIndex);
+                // top player's won cards
+                if (deckOfPlayingCards[topPlayerWonCardsGroupIndex].getCount() > 0)
+                    TransferFirstGroupOfCardsToSecondGroup(topPlayerWonCardsGroupIndex, deckGroupIndex);
 
-            // bottom player's cards
-            if (deckOfPlayingCards[bottomPlayerGroupIndex].getCount() > 0)
-                TransferFirstGroupOfCardsToSecondGroup(bottomPlayerGroupIndex, deckGroupIndex);
+                // bottom player's cards
+                if (deckOfPlayingCards[bottomPlayerGroupIndex].getCount() > 0)
+                    TransferFirstGroupOfCardsToSecondGroup(bottomPlayerGroupIndex, deckGroupIndex);
 
-            // bottom player's won cards
-            if (deckOfPlayingCards[bottomPlayerWonCardsGroupIndex].getCount() > 0)
-                TransferFirstGroupOfCardsToSecondGroup(bottomPlayerWonCardsGroupIndex, deckGroupIndex);
+                // bottom player's won cards
+                if (deckOfPlayingCards[bottomPlayerWonCardsGroupIndex].getCount() > 0)
+                    TransferFirstGroupOfCardsToSecondGroup(bottomPlayerWonCardsGroupIndex, deckGroupIndex);
 
-            // check dealt cards just in case
-            if (deckOfPlayingCards[dealtCardsGroupIndex].getCount() > 0)
-                TransferFirstGroupOfCardsToSecondGroup(dealtCardsGroupIndex, deckGroupIndex);
+                // check dealt cards just in case
+                if (deckOfPlayingCards[dealtCardsGroupIndex].getCount() > 0)
+                    TransferFirstGroupOfCardsToSecondGroup(dealtCardsGroupIndex, deckGroupIndex);
 
-            isDeckSplit = false;
+                isDeckSplit = false;
 
-            GatherGroupOfCards(centeredCardX, centeredCardY, deckGroupIndex);
+                GatherGroupOfCards(centeredCardX, centeredCardY, deckGroupIndex);
 
-            startWARCardGameToolStripMenuItem.Visible = true;
-            startWARCardGameToolStripMenuItem.Enabled = true;
-            autoPlayGameToolStripMenuItem.Visible = true;
-            autoPlayGameToolStripMenuItem.Enabled = true;
+                startWARCardGameToolStripMenuItem.Visible = true;
+                startWARCardGameToolStripMenuItem.Enabled = true;
+                autoPlayGameToolStripMenuItem.Visible = true;
+                autoPlayGameToolStripMenuItem.Enabled = true;
 
-            resetGameToolStripMenuItem.Enabled = false;
-            resetGameToolStripMenuItem.Visible = false;
+                resetGameToolStripMenuItem.Enabled = false;
+                resetGameToolStripMenuItem.Visible = false;
 
-            UpdateOutputLabel();
+                UpdateOutputLabel();
 
-            // reset the commentary label
-            lblCommentary.Text = warPlayers[topPlayerIndex].Name + " and " + warPlayers[bottomPlayerIndex].Name + 
-                " are you ready to play again?";
+                // reset the commentary label
+                lblCommentary.Text = warPlayers[topPlayerIndex].Name + " and " + warPlayers[bottomPlayerIndex].Name +
+                    " are you ready to play again?";
 
-            lblTopPlayer.Visible = false;
-            lblBottomPlayer.Visible = false;
-            lblGameStartTime.Visible = false;
-            lblGameStopTime.Visible = false;
-            lblGameDuration.Visible = false;
+                lblTopPlayer.Visible = false;
+                lblBottomPlayer.Visible = false;
+                lblGameStartTime.Visible = false;
+                lblGameStopTime.Visible = false;
+                lblGameDuration.Visible = false;
 
-            round = 1;
-            lblRound.Visible = false;
+                round = 1;
+                lblRound.Visible = false;
+
+                awaitingReset = false;
+            }
+            else 
+            {
+                MessageBox.Show("Attempting to reset game when game is not awaiting reset");
+            }
         }
 
         private void TimerTick(object sender, EventArgs e)
@@ -1623,17 +1676,32 @@ namespace WAR_Card_Game
             if (keyString.Length < 4)
             {
                 keyString += keyCode.ToString();
-                lblOutput.Text = "Key was pressed with keyCode = " + keyCode.ToString() +
-                    "\n keyString = " + keyString;
+                //lblOutput.Text = "Key was pressed with keyCode = " + keyCode.ToString() +
+                  //  "\n keyString = " + keyString;
             }
 
             if (keyString.Length == 4 && keyString.ToLower() == "jhle")
             {
-                lblOutput.Text = "Code \"" + keyString  + "\" accepted";
+                MessageBox.Show("Code \"" + keyString  + "\" accepted");
                 keyString = "";
 
-                testForm = new TestFormWAR(this);
-                testForm.Show();
+                if (isGamePlaying == false)
+                {
+                    if (awaitingReset == false)
+                    {
+                        testForm = new TestFormWAR(this);
+                        testForm.Show();
+                    }
+                    else
+                    {
+                        MessageBox.Show("You must reset the game first!");
+                    }
+                }
+                else
+                {
+                    MessageBox.Show("You must end the current game first!");
+                }
+
             }
             else if (keyString.Length == 4 && keyString.ToLower() != "jhle")
             {
@@ -1641,6 +1709,12 @@ namespace WAR_Card_Game
                 keyString = "";
             }
 
+        }
+
+        private void ExitProgram(object sender, EventArgs e)
+        {
+            // exit the program
+            this.Close();
         }
     }
 }

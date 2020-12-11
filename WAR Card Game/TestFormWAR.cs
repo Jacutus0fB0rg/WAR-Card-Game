@@ -24,6 +24,10 @@ namespace WAR_Card_Game
         {
             lstBxGamesInfoDisplay.Items.Clear();
 
+            // disable the engage and clear buttons
+            btnEngage.Enabled = false;
+            btnClear.Enabled = false;
+
             try
             {
                 mainForm.AutoPlayMultipleGames(sender, e);
@@ -33,6 +37,10 @@ namespace WAR_Card_Game
             {
                 MessageBox.Show(ex.Message);
             }
+
+            // reenable the engage and clear buttons
+            btnEngage.Enabled = true;
+            btnClear.Enabled = true;
         }
 
         private void btnClear_Click(object sender, EventArgs e)
