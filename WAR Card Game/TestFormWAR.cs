@@ -38,9 +38,7 @@ namespace WAR_Card_Game
                 MessageBox.Show(ex.Message);
             }
 
-            // reenable the engage and clear buttons
-            btnEngage.Enabled = true;
-            btnClear.Enabled = true;
+            
         }
 
         private void btnClear_Click(object sender, EventArgs e)

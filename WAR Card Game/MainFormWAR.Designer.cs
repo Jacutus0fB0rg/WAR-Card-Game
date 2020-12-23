@@ -57,13 +57,17 @@ namespace WAR_Card_Game
             this.autoPlayGameToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.resetGameToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.stopAutoPlayToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.exitProgramToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.lblTopPlayer = new System.Windows.Forms.Label();
             this.lblBottomPlayer = new System.Windows.Forms.Label();
             this.lblGameDuration = new System.Windows.Forms.Label();
             this.lblRound = new System.Windows.Forms.Label();
             this.lblCommentary = new System.Windows.Forms.Label();
             this.lblGameStopTime = new System.Windows.Forms.Label();
-            this.exitProgramToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.autoPlayUntilWARLevel1ToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.autoPlayUntilWARLevel2ToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.autoPlayUntilWARLevel3ToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.autoPlayThroughToEndToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.cntxtMnStrpCardControl.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -375,11 +379,15 @@ namespace WAR_Card_Game
             // 
             // autoPlayGameToolStripMenuItem
             // 
+            this.autoPlayGameToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.autoPlayThroughToEndToolStripMenuItem,
+            this.autoPlayUntilWARLevel1ToolStripMenuItem,
+            this.autoPlayUntilWARLevel2ToolStripMenuItem,
+            this.autoPlayUntilWARLevel3ToolStripMenuItem});
             this.autoPlayGameToolStripMenuItem.Name = "autoPlayGameToolStripMenuItem";
             this.autoPlayGameToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Alt | System.Windows.Forms.Keys.A)));
             this.autoPlayGameToolStripMenuItem.Size = new System.Drawing.Size(234, 22);
             this.autoPlayGameToolStripMenuItem.Text = "AutoPlay Game";
-            this.autoPlayGameToolStripMenuItem.Click += new System.EventHandler(this.AutoPlayGame);
             // 
             // resetGameToolStripMenuItem
             // 
@@ -400,6 +408,14 @@ namespace WAR_Card_Game
             this.stopAutoPlayToolStripMenuItem.Text = "Stop AutoPlay";
             this.stopAutoPlayToolStripMenuItem.Visible = false;
             this.stopAutoPlayToolStripMenuItem.Click += new System.EventHandler(this.StopAutoPlaying);
+            // 
+            // exitProgramToolStripMenuItem
+            // 
+            this.exitProgramToolStripMenuItem.Name = "exitProgramToolStripMenuItem";
+            this.exitProgramToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Alt | System.Windows.Forms.Keys.X)));
+            this.exitProgramToolStripMenuItem.Size = new System.Drawing.Size(234, 22);
+            this.exitProgramToolStripMenuItem.Text = "Exit Program";
+            this.exitProgramToolStripMenuItem.Click += new System.EventHandler(this.ExitProgram);
             // 
             // lblTopPlayer
             // 
@@ -479,13 +495,33 @@ namespace WAR_Card_Game
             this.lblGameStopTime.Text = "Game Stop Time: ";
             this.lblGameStopTime.Visible = false;
             // 
-            // exitProgramToolStripMenuItem
+            // autoPlayUntilWARLevel1ToolStripMenuItem
             // 
-            this.exitProgramToolStripMenuItem.Name = "exitProgramToolStripMenuItem";
-            this.exitProgramToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Alt | System.Windows.Forms.Keys.X)));
-            this.exitProgramToolStripMenuItem.Size = new System.Drawing.Size(234, 22);
-            this.exitProgramToolStripMenuItem.Text = "Exit Program";
-            this.exitProgramToolStripMenuItem.Click += new System.EventHandler(this.ExitProgram);
+            this.autoPlayUntilWARLevel1ToolStripMenuItem.Name = "autoPlayUntilWARLevel1ToolStripMenuItem";
+            this.autoPlayUntilWARLevel1ToolStripMenuItem.Size = new System.Drawing.Size(214, 22);
+            this.autoPlayUntilWARLevel1ToolStripMenuItem.Text = "AutoPlay until WAR level 1";
+            this.autoPlayUntilWARLevel1ToolStripMenuItem.Click += new System.EventHandler(this.autoPlayUntilWARLevel1);
+            // 
+            // autoPlayUntilWARLevel2ToolStripMenuItem
+            // 
+            this.autoPlayUntilWARLevel2ToolStripMenuItem.Name = "autoPlayUntilWARLevel2ToolStripMenuItem";
+            this.autoPlayUntilWARLevel2ToolStripMenuItem.Size = new System.Drawing.Size(214, 22);
+            this.autoPlayUntilWARLevel2ToolStripMenuItem.Text = "AutoPlay until WAR level 2";
+            this.autoPlayUntilWARLevel2ToolStripMenuItem.Click += new System.EventHandler(this.AutoPlayUntilWARLevel2);
+            // 
+            // autoPlayUntilWARLevel3ToolStripMenuItem
+            // 
+            this.autoPlayUntilWARLevel3ToolStripMenuItem.Name = "autoPlayUntilWARLevel3ToolStripMenuItem";
+            this.autoPlayUntilWARLevel3ToolStripMenuItem.Size = new System.Drawing.Size(214, 22);
+            this.autoPlayUntilWARLevel3ToolStripMenuItem.Text = "AutoPlay until WAR level 3";
+            this.autoPlayUntilWARLevel3ToolStripMenuItem.Click += new System.EventHandler(this.AutoPlayUntilWARLevel3);
+            // 
+            // autoPlayThroughToEndToolStripMenuItem
+            // 
+            this.autoPlayThroughToEndToolStripMenuItem.Name = "autoPlayThroughToEndToolStripMenuItem";
+            this.autoPlayThroughToEndToolStripMenuItem.Size = new System.Drawing.Size(214, 22);
+            this.autoPlayThroughToEndToolStripMenuItem.Text = "AutoPlay Through to End";
+            this.autoPlayThroughToEndToolStripMenuItem.Click += new System.EventHandler(this.AutoPlayThroughToEnd);
             // 
             // MainFormWAR
             // 
@@ -552,6 +588,10 @@ namespace WAR_Card_Game
         private System.Windows.Forms.ToolStripMenuItem resetGameToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem stopAutoPlayToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem exitProgramToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem autoPlayThroughToEndToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem autoPlayUntilWARLevel1ToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem autoPlayUntilWARLevel2ToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem autoPlayUntilWARLevel3ToolStripMenuItem;
     }
 }
 

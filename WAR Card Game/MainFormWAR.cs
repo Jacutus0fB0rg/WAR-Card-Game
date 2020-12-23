@@ -17,40 +17,42 @@ namespace WAR_Card_Game
     public partial class MainFormWAR : Form
     {
         // declare class variables
-        const int cardsInDeck = 52, cardsInHalfDeck = 26;
+        const int CARDS_IN_DECK = 52, cardsInHalfDeck = 26;         // number of cards in a deck of playing cards
 
         Random rand = new Random();     // variable for generating random numbers
 
         bool isDeckSplit = false;       // flag to indicate that the deck of cards has been divided in half
                                         // (split into first half group and  second half group)
-        bool isGamePlaying = false;     // flag to indicate that the game is currently being played
+        bool isGamePlaying = false;     // flag to indicate that a game is currently being played
 
-        // the deckOfPlayingCards variable is a list of groups of playing card objects
-        // each group is a list of playing card objects
+        // the deckOfPlayingCards variable is a List of GroupOfPlayingCards objects
+        // each group is a List of PlayingCard objects
         // the intention is to model a deck of playing cards such that it can be broken down
         // into groups of cards so the cards may be manipulated as groups of cards
         List<GroupOfPlayingCards> deckOfPlayingCards = new List<GroupOfPlayingCards>();
 
-        const int cardWidth = 116, cardHeight = 178;  // measured card dimensions (experimentally determined)
-        int halfCardWidth, halfCardHeight;      // the card width and height divided by two (used for centering the cards)
-        const int splitCardOffset = 90;
-        const int spreadOffset = 25;
+        const int CARD_WIDTH = 116, CARD_HEIGHT = 178;  // measured card dimensions (experimentally determined)
+        int halfCardWidth, halfCardHeight;              // the card width and height divided by two (used for centering the cards)
+        const int SPLIT_CARD_OFFSET = 90;               // distance to move the first half of the deck left and second half of the deck right
+                                                        // when splitting the deck of cards
+        const int SPREAD_OFFSET = 25;                   // distance to displace the cards to the right when spreading a group of cards
+        const int SPACING_GAP = 10;
 
-        List<Player> warPlayers = new List<Player>();
+        List<Player> warPlayers = new List<Player>();   // List of Player objects representing the players of the WAR card game
 
-        int topPlayerIndex = 0, bottomPlayerIndex = 1;
+        int topPlayerIndex = 0, bottomPlayerIndex = 1;  // indexes into the warPlayers List for the Top Player and Bottom Player
 
         // new class variables
         // these indices are for referring to and accessing individual groups of cards
-        int deckGroupIndex,                 // this index refers to the deck when it is a single group of cards - "The deck" 
-            shuffleGroupIndex,              // this index refers to a group used for shuffling the cards - "Shuffle"
-            firstHalfGroupIndex,
-            secondHalfGroupIndex,
-            topPlayerGroupIndex,
-            bottomPlayerGroupIndex,
-            topPlayerWonCardsGroupIndex,
-            bottomPlayerWonCardsGroupIndex,
-            dealtCardsGroupIndex;
+        int deckGroupIndex,                             // this index refers to the deck when it is a single group of cards - "The deck" 
+            shuffleGroupIndex,                          // this index refers to a group used for shuffling the cards - "Shuffle"
+            firstHalfGroupIndex,                        // this index refers to the group that is the first half of the deck when split
+            secondHalfGroupIndex,                       // this index refers to the group that is the second half of the deck when split
+            topPlayerGroupIndex,                        // this index refers to the group that is the cards the Top Player deals from
+            bottomPlayerGroupIndex,                     // this index refers to the group that is the cards the Bottom Player deals from
+            topPlayerWonCardsGroupIndex,                // this index refers to the group that is the cards the Top Player has won
+            bottomPlayerWonCardsGroupIndex,             // this index refers to the group that is the cards the Bottom Player has won
+            dealtCardsGroupIndex;                       // this index refers to the group that is the cards that are dealt
 
         Point formCenterPoint;              // this is the center point of the main form (MainFormWAR) 
 
@@ -63,22 +65,34 @@ namespace WAR_Card_Game
 
         // setup variables
         // coords for setting up positions of cards
-        int setUpTPY, setUpBPY;
-        int firstCardTPY, firstCardBPY;
-        Point topPlayerLabelPoint, bottomPlayerLabelPoint;
+        int setUpTPY, setUpBPY;                                 // Y coordinates for the cards the Top and Bottom Players deal from 
+        int firstCardTPY, firstCardBPY;                         // Y coordinates for the cards the Top and Bottom Players deal to
+        Point topPlayerLabelPoint, bottomPlayerLabelPoint;      // location of the Player's identifier, name and score labels
 
         // game variables
-        int warLevel = 0;
-        int round = 1;
-        DateTime gameStartTime, gameEndTime;
-        TimeSpan gameElapsedTime;
+        int warLevel = 0;                                       // indicates how many iterations there have been of the current card "WAR"
+        int round = 1;                                          // number of times cards have been dealt in the currently playing game
+        DateTime gameStartTime,                                 // time at which the currently playing game began
+            gameEndTime;                                        // time at which the most recently played game ended
+        TimeSpan gameElapsedTime;                               // duration of the  currently playing or most recently played game
 
-        InfoFormWAR startForm;
-        public TestFormWAR testForm;
+        IntroFormWAR startForm;                                 // instance of the Intro Form (used for entering the players names)
+        public TestFormWAR testForm;                            // instance of the Test Form (used for running multiple autoplayed games
+                                                                // for test purposes)
 
-        ControlMode controlMode = ControlMode.UserGame;
+        ControlMode controlMode = ControlMode.UserGame;         // configuration of the user interface for different purposes
 
-        bool awaitingReset = false, isAutoPlaying = false;
+        bool awaitingReset = false,                             // flag indicating there is a currently playing game that is waiting to be reset
+                                                                // (this allows the user(s) to see the state of the currently playing game when it ends)                             
+            isAutoPlaying = false;                              // flag indicating that the currently playing game is autoplaying
+
+        bool gameDefault = false;
+
+        int dealtCardCount = 0;
+
+        int warThreshold = 100;
+
+        int drawMaxRounds = 10000;                              // the number of rounds at which an autoplaying game will be declared a draw
 
         public MainFormWAR()
         {
@@ -87,48 +101,172 @@ namespace WAR_Card_Game
 
         private void MainFormWAR_Load(object sender, EventArgs e)
         {
-            startForm = new InfoFormWAR();
-            
+            // instantiate the intro form
+            startForm = new IntroFormWAR();
+
+            // while the intro form is not validated and the user hasn't chosen to end the program
             while (startForm.validation == false && startForm.endProgram == false)
             {
+                // display and turn control over to the intro form
                 startForm.ShowDialog();
             }
 
+            // if the intro form's endProgram flag is set
             if (startForm.endProgram == true)
             {
+                // end the program
                 this.Close();
             }
+            // if the intro form's endProgram flag is not set
             else
             {
+                // display the welcome message in the commentary label
                 lblCommentary.Text = "Welcome WAR Players " + startForm.txtBxTopPlayerName.Text + " and "
-                    + startForm.txtBxBottomPlayerName.Text + "! " + startForm.txtBxTopPlayerName.Text + 
-                    ", you're the Top Player and " + startForm.txtBxBottomPlayerName.Text + 
+                    + startForm.txtBxBottomPlayerName.Text + "! " + startForm.txtBxTopPlayerName.Text +
+                    ", you're the Top Player and " + startForm.txtBxBottomPlayerName.Text +
                     ", you're the Bottom Player! Follow the instructions to begin playing!";
-                
+
+                // update the output label
+                UpdateOutputLabel();
+
+                // begin the the initial setup of the program
                 IntialSetup();
             }
 
-                        
+        }
+
+        private void UpdateOutputLabel()
+        {
+            // if the control mode is set to card manipulation mode
+            if (controlMode == ControlMode.CardManipulation)
+
+                // display the appropriate message in the output label along with the card name of the selected card
+                lblOutput.Text = "Instructions: Right click to select options!\nSelected card is " + selectedCardString;
+
+            // if the control mode is set to user game mode
+            else if (controlMode == ControlMode.UserGame)
+            {
+                // if a game is not currently being played and is not awaiting reset
+                if (isGamePlaying == false && awaitingReset == false)
+                {
+                    // display the message telling the user to select either the "Start WAR Card Game" option or the "AutoPlay Game" option
+                    lblOutput.Text = "Instructions: Right click and select the \"Start WAR Card Game \" option for manual game play!" +
+                        " Select \"AutoPlay Game\" for automatic game play!";
+                }
+                // if a game is currently being played but is not awaiting reset
+                else if (isGamePlaying == true && awaitingReset == false)
+                {
+                    // if the game is not autoplaying 
+                    if (isAutoPlaying == false)
+                    {
+                        // if the "Compare Cards" Context Menu item is disabled
+                        if (compareCardsToolStripMenuItem.Enabled == false)
+                            // display a message telling the  user to either select the "Deal Cards" or "Auto Play Game" options
+                            lblOutput.Text = "Instructions: Right click, select \"Play WAR Card Game\" then select \"Deal Cards\"!" +
+                                " Select \"AutoPlay Game\" to continue automatically!";
+                        // if  the "Deal Cards" Context Menu item is disabled
+                        else if (dealCardsToolStripMenuItem.Enabled == false)
+                            // display a message telling the user to either select the "Compare Cards" or "AuoPlay Game" options
+                            lblOutput.Text = "Instructions: Right click, select \"Play WAR Card Game\" then select \"Compare Cards\"!" +
+                                 " Select \"AutoPlay Game\" to continue automatically!";
+                    }
+                    // if the game is autoplaying
+                    else
+                    {
+                        // display a message telling the  user to select the "Stop AutoPlay" option if they want to return to playing manually
+                        lblOutput.Text = "Instructions: Right click and select the \"Stop AutoPlay\" option to return to manual game play!";
+                    }
+                }
+            }
+        }
+
+        private void IntialSetup()
+        {
+            // calculate values of the halfCardWidth and halfCardHeight variables
+            CalculateHalfWidthAndHeight();
+
+            // create all the cards, groups of cards and WAR Players game objects
+            CreateCardGroupsAndWARPlayers();
+
+            // create an index to reference the deck of cards as a whole 
+            deckGroupIndex = ReturnGroupIndexGivenIdentifier("The deck");
+
+            // rearrange the deck of cards so the cards are in the order of a brand new deck of cards
+            SetInitialCardOrder();
+
+            // create an index to the group of cards used for shuffling any group of cards
+            shuffleGroupIndex = ReturnGroupIndexGivenIdentifier("Shuffle");
+
+            // create an index to the group of cards that will represent the first half of the deck when it is split
+            firstHalfGroupIndex = ReturnGroupIndexGivenIdentifier("First Half");
+
+            // create an index to the group of cards that will represent the second half of the deck when it is split
+            secondHalfGroupIndex = ReturnGroupIndexGivenIdentifier("Second Half");
+
+            // create an index to the group of cards that will represent the Top Player's cards (the cards from which the Top Player will deal)
+            topPlayerGroupIndex = ReturnGroupIndexGivenIdentifier("Top Player cards");
+
+            // create an index to the group of cards that will represent the Bottom Player's cards (the cards from which the Bottom Player will deal)
+            bottomPlayerGroupIndex = ReturnGroupIndexGivenIdentifier("Bottom Player cards");
+
+            // create an index to the group of cards that will represent the cards won by the Top Player during a game
+            topPlayerWonCardsGroupIndex = ReturnGroupIndexGivenIdentifier("Top Player won cards");
+
+            // create an index to the group of cards that will represent the cards won by the Bottom Player during a game
+            bottomPlayerWonCardsGroupIndex = ReturnGroupIndexGivenIdentifier("Bottom Player won cards");
+
+            // create an index to the group of cards that will represent the cards dealt during a game
+            dealtCardsGroupIndex = ReturnGroupIndexGivenIdentifier("Dealt cards");
+
+            // calculate the center point of the application form
+            formCenterPoint = CalculateCenterPointOfForm();
+
+            // calculate the X coordinate of the upper left hand corner of a card that is centered on the application form
+            centeredCardX = formCenterPoint.X - halfCardWidth;
+
+            // calculate the Y coordinate of the upper left hand corner of a card that is centered on the application form
+            centeredCardY = formCenterPoint.Y - halfCardHeight;
+
+            // calculate the Y coordinate of the upper left hand corner of a card that is positioned where the Top Player will deal from
+            setUpTPY = formCenterPoint.Y - (formCenterPoint.Y / 2) - (formCenterPoint.Y / 4) - halfCardHeight;
+
+            // calculate the Y coordinate of the upper left hand corner of a card that is positioned where the Bottom Player will deal from
+            setUpBPY = formCenterPoint.Y + (formCenterPoint.Y / 2) + (formCenterPoint.Y / 4) - halfCardHeight;
+
+            // calculate the Y coordinate of the upper left hand corner of a card that is positioned where the Top Player will deal to
+            firstCardTPY = formCenterPoint.Y - (formCenterPoint.Y / 4) - halfCardHeight;
+
+            // calculate the Y coordinate of the upper left hand corner of a card that is positioned where the Bottom Player will deal to
+            firstCardBPY = formCenterPoint.Y + (formCenterPoint.Y / 4) - halfCardHeight;
+
+            // gather the deck of cards at the position at which they are centered on the application form
+            GatherGroupOfCards(centeredCardX, centeredCardY, deckGroupIndex);
         }
 
         private Point GetContextMenuLocation()
         {
-
+            // instantiate the zero point
             Point zeroPoint = new Point(0, 0);
 
+            // get the zero point (location) of the Context Menu (in screen coordinates)
             Point cmPoint = cntxtMnStrpCardControl.PointToScreen(zeroPoint);
-            int cmX = cmPoint.X - this.Location.X - 10;
+
+            // calculate the location of the Context Menu in client coordinates relative to the application form
+            int cmX = cmPoint.X - this.Location.X;
             int cmY = cmPoint.Y - this.Location.Y;
+
+            // convert the Context Menu's location point to client coordinates relative to the application form
             cmPoint.X = cmX;
             cmPoint.Y = cmY;
 
+            // return the Context Menu's location in client coordinates relative to the application form
             return cmPoint;
 
         }
 
         private void GatherTheDeck(object sender, EventArgs e)
         {
-            
+
             if (isDeckSplit == false)
             {
                 Point cmLocationPoint = GetContextMenuLocation();
@@ -148,8 +286,8 @@ namespace WAR_Card_Game
                 int topLeftCornerY = cmLocationPoint.Y - halfCardHeight;
 
                 //Point cardLocation = deckOfPlayingCards[deckGroupIndex].Group[0].getLocation();
-                int groupCount = deckOfPlayingCards[deckGroupIndex].getCount();
-                int spreadWidth = cardWidth + spreadOffset * (groupCount - 1);
+                int groupCount = deckOfPlayingCards[deckGroupIndex].GetCount();
+                int spreadWidth = CARD_WIDTH + SPREAD_OFFSET * (groupCount - 1);
                 int startingX = formCenterPoint.X - (spreadWidth / 2);
 
                 SpreadGroupOfCards(startingX, topLeftCornerY, deckGroupIndex);
@@ -166,27 +304,35 @@ namespace WAR_Card_Game
 
         private void ConfigureContextMenuForSplitDeck()
         {
+            // enable and make visible the Gather Deck => First Half Context Menu item
             gatherFirstHalfToolStripMenuItem.Visible = true;
             gatherFirstHalfToolStripMenuItem.Enabled = true;
 
+            // enable and make visible the Gather Deck => Second Half Context Menu item
             gatherSecondHalfToolStripMenuItem.Visible = true;
             gatherSecondHalfToolStripMenuItem.Enabled = true;
 
+            // enable and make visible the Spread Deck => First Half Context Menu item
             spreadFirstHalfToolStripMenuItem.Visible = true;
             spreadFirstHalfToolStripMenuItem.Enabled = true;
 
+            // enable and make visible the Spread Deck => Second Half Context Menu item
             spreadSecondHalfToolStripMenuItem.Visible = true;
             spreadSecondHalfToolStripMenuItem.Enabled = true;
 
+            // enable and make visible the Shuffle Deck => First Half Context Menu item
             shuffleFirstHalfToolStripMenuItem.Visible = true;
             shuffleFirstHalfToolStripMenuItem.Enabled = true;
 
+            // enable and make visible the Shuffle Deck => Second Half Context Menu item
             shuffleSecondHalfToolStripMenuItem.Visible = true;
             shuffleSecondHalfToolStripMenuItem.Enabled = true;
 
+            // enable and make visible the Join Deck Context Menu item
             joinDeckToolStripMenuItem.Visible = true;
             joinDeckToolStripMenuItem.Enabled = true;
 
+            // disable and make invisible the Split Deck Context Menu item
             splitDeckToolStripMenuItem.Enabled = false;
             splitDeckToolStripMenuItem.Visible = false;
         }
@@ -220,39 +366,52 @@ namespace WAR_Card_Game
 
         private void SplitTheDeck(object sender, EventArgs e)
         {
+            // check if the control mode is set to CardManipulation
             if (controlMode == ControlMode.CardManipulation)
+                // if the control mode is set to CardManipulation, configure the Context Menu for the deck being split
                 ConfigureContextMenuForSplitDeck();
 
-            int deckGroupCount = deckOfPlayingCards[deckGroupIndex].getCount();
-            int halfDeckGroupCount = deckGroupCount / 2;
+            int deckGroupCount = deckOfPlayingCards[deckGroupIndex].GetCount();     // number of cards in the deckGroup
+            int halfDeckGroupCount = deckGroupCount / 2;                            // half of the number of cards in the deckGroup
 
             // split the deck of cards into first half and second half
+
+            // loop through the first half of the deckGroup
             for (int c = 0; c < halfDeckGroupCount; c++)
             {
-
-                deckOfPlayingCards[firstHalfGroupIndex].addCardToGroup(deckOfPlayingCards[deckGroupIndex].getCard(c));
+                // get the current card from the deckGroup and add it to the firstHalfGroup
+                deckOfPlayingCards[firstHalfGroupIndex].AddCardToGroup(deckOfPlayingCards[deckGroupIndex].GetCard(c));
             }
 
+            // loop through the second half of the deckGroup
             for (int c = halfDeckGroupCount; c < deckGroupCount; c++)
             {
-
-                deckOfPlayingCards[secondHalfGroupIndex].addCardToGroup(deckOfPlayingCards[deckGroupIndex].getCard(c));
+                // get the current card from the deckGroup and add it to the secondHalfGroup
+                deckOfPlayingCards[secondHalfGroupIndex].AddCardToGroup(deckOfPlayingCards[deckGroupIndex].GetCard(c));
             }
 
-            //deckOfPlayingCards[shuffleGroupIndex].removeCardFromGroup(shuffleIndex);
+            // loop through the deckGroup once for each card
             for (int c = 0; c < deckGroupCount; c++)
             {
-                deckOfPlayingCards[deckGroupIndex].removeCardFromGroup(0);
+                // remove the first card from the remaining cards in the deckGroup
+                deckOfPlayingCards[deckGroupIndex].RemoveCardFromGroup(0);
             }
 
-            // relocate the two half decks to either side of the mouse pointer
+            // relocate the two half decks to either side of the location of the Context Menu
+
+            // get the location point of the Context Menu
             Point cmLocationPoint = GetContextMenuLocation();
 
+            // calculate the location coordinates of a card centered on the location point of the Context Menu
             int topLeftCornerX = cmLocationPoint.X - halfCardWidth, topLeftCornerY = cmLocationPoint.Y - halfCardHeight;
 
-            GatherGroupOfCards(topLeftCornerX - splitCardOffset, topLeftCornerY, firstHalfGroupIndex);
-            GatherGroupOfCards(topLeftCornerX + splitCardOffset, topLeftCornerY, secondHalfGroupIndex);
+            // gather the first half of the deck offset to the left of the location point centered on the Context Menu
+            GatherGroupOfCards(topLeftCornerX - SPLIT_CARD_OFFSET, topLeftCornerY, firstHalfGroupIndex);
 
+            // gather the second half of the deck offset to the right of the location point centered on the Context Menu
+            GatherGroupOfCards(topLeftCornerX + SPLIT_CARD_OFFSET, topLeftCornerY, secondHalfGroupIndex);
+
+            // set the flag which indicates whether the deck is split or not
             isDeckSplit = true;
         }
 
@@ -260,20 +419,20 @@ namespace WAR_Card_Game
         {
             ConfigureContextMenuForJoinDeck();
 
-            int halfDeckGroupCount = deckOfPlayingCards[firstHalfGroupIndex].getCount(); ;
+            int halfDeckGroupCount = deckOfPlayingCards[firstHalfGroupIndex].GetCount(); ;
 
             for (int c = 0; c < halfDeckGroupCount; c++)
             {
                 //
                 //deckOfCards.Add(firstHalfOfDeck[c]);
-                deckOfPlayingCards[deckGroupIndex].addCardToGroup(deckOfPlayingCards[firstHalfGroupIndex].getCard(c));
+                deckOfPlayingCards[deckGroupIndex].AddCardToGroup(deckOfPlayingCards[firstHalfGroupIndex].GetCard(c));
             }
 
 
             for (int c = 0; c < halfDeckGroupCount; c++)
             {
                 //firstHalfOfDeck.RemoveAt(0);
-                deckOfPlayingCards[firstHalfGroupIndex].removeCardFromGroup(0);
+                deckOfPlayingCards[firstHalfGroupIndex].RemoveCardFromGroup(0);
 
             }
 
@@ -281,13 +440,13 @@ namespace WAR_Card_Game
             {
                 //
                 //deckOfCards.Add(firstHalfOfDeck[c]);
-                deckOfPlayingCards[deckGroupIndex].addCardToGroup(deckOfPlayingCards[secondHalfGroupIndex].getCard(c));
+                deckOfPlayingCards[deckGroupIndex].AddCardToGroup(deckOfPlayingCards[secondHalfGroupIndex].GetCard(c));
             }
 
             for (int c = 0; c < halfDeckGroupCount; c++)
             {
                 //firstHalfOfDeck.RemoveAt(0);
-                deckOfPlayingCards[secondHalfGroupIndex].removeCardFromGroup(0);
+                deckOfPlayingCards[secondHalfGroupIndex].RemoveCardFromGroup(0);
 
             }
 
@@ -331,16 +490,16 @@ namespace WAR_Card_Game
                 Point cmLocationPoint = GetContextMenuLocation();
 
                 int topLeftCornerX = cmLocationPoint.X - halfCardWidth, topLeftCornerY = cmLocationPoint.Y - halfCardHeight;
-                int groupCount = deckOfPlayingCards[firstHalfGroupIndex].getCount();
-                int spreadWidth = cardWidth + spreadOffset * (groupCount - 1);
+                int groupCount = deckOfPlayingCards[firstHalfGroupIndex].GetCount();
+                int spreadWidth = CARD_WIDTH + SPREAD_OFFSET * (groupCount - 1);
                 int startingX = topLeftCornerX - (spreadWidth / 2);
                 //formCenterPoint.X
                 Size formSize = this.Size;
 
-                if (startingX < 10)
-                    startingX = 10;
+                if (startingX < SPACING_GAP)
+                    startingX = SPACING_GAP;
                 else if (startingX + spreadWidth > formSize.Width)
-                    startingX = formSize.Width - spreadWidth - 10;
+                    startingX = formSize.Width - spreadWidth - SPACING_GAP;
 
                 SpreadGroupOfCards(startingX, topLeftCornerY, firstHalfGroupIndex);
             }
@@ -354,16 +513,16 @@ namespace WAR_Card_Game
                 Point cmLocationPoint = GetContextMenuLocation();
 
                 int topLeftCornerX = cmLocationPoint.X - halfCardWidth, topLeftCornerY = cmLocationPoint.Y - halfCardHeight;
-                int groupCount = deckOfPlayingCards[secondHalfGroupIndex].getCount();
-                int spreadWidth = cardWidth + spreadOffset * (groupCount - 1);
+                int groupCount = deckOfPlayingCards[secondHalfGroupIndex].GetCount();
+                int spreadWidth = CARD_WIDTH + SPREAD_OFFSET * (groupCount - 1);
                 int startingX = topLeftCornerX - (spreadWidth / 2);
                 //formCenterPoint.X
                 Size formSize = this.Size;
 
-                if (startingX < 10)
-                    startingX = 10;
+                if (startingX < SPACING_GAP)
+                    startingX = SPACING_GAP;
                 else if (startingX + spreadWidth > formSize.Width)
-                    startingX = formSize.Width - spreadWidth - 10;
+                    startingX = formSize.Width - spreadWidth - SPACING_GAP;
 
                 SpreadGroupOfCards(startingX, topLeftCornerY, secondHalfGroupIndex);
             }
@@ -387,53 +546,31 @@ namespace WAR_Card_Game
 
         private Point CalculateCenterPointOfForm()
         {
+            // instantiate the center point
             Point centerPoint = new Point();
 
+            // get the size of the application form
             Size formSize = this.Size;
 
+            // divide the form size width by two and store in centerPoint X
             centerPoint.X = formSize.Width / 2;
+
+            // divide the form size heght by two and store in centerPoint Y
             centerPoint.Y = formSize.Height / 2;
 
+            // return the center point
             return centerPoint;
         }
 
         private void CalculateHalfWidthAndHeight()
         {
-            halfCardWidth = cardWidth / 2;
-            halfCardHeight = cardHeight / 2;
+            // divide the measured card width by two and store in halfCardWidth
+            halfCardWidth = CARD_WIDTH / 2;
+
+            // divide the measured card height by two and store in halfCardHeight
+            halfCardHeight = CARD_HEIGHT / 2;
         }
 
-        private void IntialSetup()
-        {
-            
-            CalculateHalfWidthAndHeight();
-
-            // create group zero "the deck"
-            CreateCardGroupsAndWARPlayers();
-
-            deckGroupIndex = ReturnGroupIndexGivenIdentifier("The deck");
-            shuffleGroupIndex = ReturnGroupIndexGivenIdentifier("Shuffle");
-            firstHalfGroupIndex = ReturnGroupIndexGivenIdentifier("First Half");
-            secondHalfGroupIndex = ReturnGroupIndexGivenIdentifier("Second Half");
-            topPlayerGroupIndex = ReturnGroupIndexGivenIdentifier("Top Player cards");
-            bottomPlayerGroupIndex = ReturnGroupIndexGivenIdentifier("Bottom Player cards");
-            topPlayerWonCardsGroupIndex = ReturnGroupIndexGivenIdentifier("Top Player won cards");
-            bottomPlayerWonCardsGroupIndex = ReturnGroupIndexGivenIdentifier("Bottom Player won cards");
-            dealtCardsGroupIndex = ReturnGroupIndexGivenIdentifier("Dealt cards");
-
-            formCenterPoint = CalculateCenterPointOfForm();
-
-            centeredCardX = formCenterPoint.X - halfCardWidth;
-            centeredCardY = formCenterPoint.Y - halfCardHeight;
-
-            setUpTPY = formCenterPoint.Y - (formCenterPoint.Y / 2) - (formCenterPoint.Y / 4) - halfCardHeight;
-            setUpBPY = formCenterPoint.Y + (formCenterPoint.Y / 2) + (formCenterPoint.Y / 4) - halfCardHeight;
-
-            firstCardTPY = formCenterPoint.Y - (formCenterPoint.Y / 4) - halfCardHeight;
-            firstCardBPY = formCenterPoint.Y + (formCenterPoint.Y / 4) - halfCardHeight;
-
-            GatherGroupOfCards(centeredCardX, centeredCardY, deckGroupIndex);
-        }
 
         private void CreateCardGroupsAndWARPlayers()
         {
@@ -443,119 +580,127 @@ namespace WAR_Card_Game
             // set the identifier for group zero - "The deck"
             groupZero.Identifier = "The deck";
 
-            // loop through the number of cards in a  deck of cards
-            for (int card = 0; card < cardsInDeck; card++)
+            // loop through the number of cards in a deck of cards
+            for (int card = 0; card < CARDS_IN_DECK; card++)
             {
                 // create the individual card assigning its card number which uniquely identifies each card
                 // in the deck
                 PlayingCard currentCard = new PlayingCard(card);
 
-                //currentCard.ClearOutputLabel += this.OnClearOutputLabel;
+                // set the event handler for the ClearOutputLabel event generated by the playing cards when they are selected
+                // so they can identify themselves in Card Manipulation mode
                 currentCard.ClearOutputLabel += OnClearOutputLabel;
 
-                // set the face image of each card from the ImageList on the main form
+                // set the face image of each card from the PlayingCardFaces ImageList images
                 currentCard.SetCardFaceImage(imgLstPlayingCardFaces.Images[currentCard.FaceImageIndex()]);
-                // add the picturebox of each card to the main form
+
+                // add the picturebox of each card to the application form
                 this.Controls.Add(currentCard.pctrBxCard);
+
                 // add the card to the deck
-                groupZero.addCardToGroup(currentCard);
+                groupZero.AddCardToGroup(currentCard);
             }
 
-            
-            // set the back image from element zero of the ImageList on the main form
-            // the  back image is a static variable in the PlayingCard class so it is shared by all the cards
-            // because all cards look the same from the back
-            PlayingCard cardZero = groupZero.getCard(0);
+            // set the back image from element zero of the PlayingCardFaces ImageList images
+            // the back image is a static variable in the PlayingCard class so it is shared by all the cards
+            // since all cards look the same from the back they can use the same image
+            PlayingCard cardZero = groupZero.GetCard(0);
             cardZero.SetCardBackImage(imgLstPlayingCardFaces.Images[0]);
 
             // add the cards to the deck
             deckOfPlayingCards.Add(groupZero);
 
-            SetInitalCardOrder();
-
+            // instantiate groupOne
             GroupOfPlayingCards groupOne = new GroupOfPlayingCards();
 
+            // set the identifier of groupOne - this is the group that is used when shuffling any other group
+            // cards are randomly removed from the target group and added to the shuffle group then randomly removed from
+            // the shuffle group and added back to the target group
             groupOne.Identifier = "Shuffle";
 
+            // add groupOne to the deck
             deckOfPlayingCards.Add(groupOne);
 
+            // instantiate groupTwo
             GroupOfPlayingCards groupTwo = new GroupOfPlayingCards();
 
+            // set the identifier of groupTwo - this group is the first half of the deck when the deck is split
             groupTwo.Identifier = "First Half";
 
+            // add groupTwo to the deck
             deckOfPlayingCards.Add(groupTwo);
 
+            // instantiate groupThree
             GroupOfPlayingCards groupThree = new GroupOfPlayingCards();
 
+            // set the identifier of groupThree - this group is the second half of the deck when the deck is split
             groupThree.Identifier = "Second Half";
 
+            // add groupThree to the deck
             deckOfPlayingCards.Add(groupThree);
 
+            // instantiate groupFour
             GroupOfPlayingCards groupFour = new GroupOfPlayingCards();
 
+            // set the identifier of groupFour - this is the group that the Top Player will deal from during a game
             groupFour.Identifier = "Top Player cards";
 
+            // add groupFour to the deck
             deckOfPlayingCards.Add(groupFour);
 
+            // instantiate groupFive
             GroupOfPlayingCards groupFive = new GroupOfPlayingCards();
 
+            // set the identifier of groupFive - this is the group that the Bottom Player will deal from during a game
             groupFive.Identifier = "Bottom Player cards";
 
+            // add groupFive to the deck
             deckOfPlayingCards.Add(groupFive);
 
+            // instantiate groupSix
             GroupOfPlayingCards groupSix = new GroupOfPlayingCards();
 
+            // set the identifier of groupSix - this is the group of cards that the Top Player wins during a game
             groupSix.Identifier = "Top Player won cards";
 
+            // add groupSix to the deck
             deckOfPlayingCards.Add(groupSix);
 
+            // instantiate groupSeven
             GroupOfPlayingCards groupSeven = new GroupOfPlayingCards();
 
+            // set the identifier of groupSeven - this is the group of cards that the Bottom Player wins during a game
             groupSeven.Identifier = "Bottom Player won cards";
 
+            // add groupSeven to the deck
             deckOfPlayingCards.Add(groupSeven);
 
+            // instantiate groupEight
             GroupOfPlayingCards groupEight = new GroupOfPlayingCards();
 
+            // set the identifier of groupEight - this is the group of cards that are dealt during a game
             groupEight.Identifier = "Dealt cards";
 
+            // add groupEight to the deck
             deckOfPlayingCards.Add(groupEight);
 
+            // instantiate the Top Player player object
             Player topPlayer = new Player();
+
+            // instantiate the Bottom Player player object
             Player bottomPlayer = new Player();
 
+            // set the identifier of the Top Player player object to "Top Player"
             topPlayer.Identifier = "Top Player";
+
+            // set the identifier of the Bottom Player player object to "Bottom Player"
             bottomPlayer.Identifier = "Bottom Player";
 
+            // add the Top Player player object to the List of WAR players
             warPlayers.Add(topPlayer);
-            warPlayers.Add(bottomPlayer);
-        }
 
-        private void UpdateOutputLabel()
-        {
-            if (controlMode == ControlMode.CardManipulation)
-                lblOutput.Text = "Instructions: Right click to select options!\nSelected card is " + selectedCardString;
-            else if (controlMode == ControlMode.UserGame)
-            {
-                // trying to see if this causes the changes to take place
-                if (isGamePlaying == false && awaitingReset == false)
-                    lblOutput.Text = "Instructions: Right click and select the \"Start WAR Card Game \"option to play the game manually!" +
-                        "\nSelect \"AutoPlay Game\" for computer controlled game play!";
-                else if (isGamePlaying == true && awaitingReset == false)
-                {
-                    if (isAutoPlaying == false)
-                    {
-                        if (compareCardsToolStripMenuItem.Enabled == false)
-                            lblOutput.Text = "Instructions: Right click, select \"Play WAR Card Game\" then select \"Deal Cards\"!";
-                        else if (dealCardsToolStripMenuItem.Enabled == false)
-                            lblOutput.Text = "Instructions: Right click, select \"Play WAR Card Game\" then select \"Compare Cards\"!";
-                    }
-                    else 
-                    {
-                        lblOutput.Text = "Instructions: Right click and select the \"Stop AutoPlay\" option to return to manual game mode!";
-                    }
-                }
-            }
+            // add the Bottom Player player object to the List of WAR players
+            warPlayers.Add(bottomPlayer);
         }
 
         public void OnClearOutputLabel(object sender, string e)
@@ -564,69 +709,112 @@ namespace WAR_Card_Game
             UpdateOutputLabel();
         }
 
-        private void SetInitalCardOrder()
+        private void SetInitialCardOrder()
         {
-            // rearrange the deck so it has the card order of a brand new deck of cards
-            // set all suits to the intial order of
-            // A 2 3 4 5 6 7 8 9 10 J Q K
+            // rearrange the deck so it has the card order of a brand new deck of cards, which is:
+            // A 2 3 4 5 6 7 8 9 10 J Q K for each suit in the order Spades, Diamonds, Clubs, Hearts
+            // (the cards need to be created in the order: 2 3 4 5 6 7 8 9 10 J Q K A for each suit for the methods that get the face value
+            // and the suit of the card to work)
 
-            PlayingCard removedCard;
+            PlayingCard removedCard;            // card removed from the deck
 
-            for (int rC = 12, iC = 0; rC <= 51; rC+=13, iC+=13)
+            // starting with the twelfth card to remove and the zero postion to insert, continue until the fifty-first card is removed,
+            // incrementing by thirteen
+            for (int rC = 12, iC = 0; rC <= 51; rC += 13, iC += 13)
             {
-                removedCard = deckOfPlayingCards[deckGroupIndex].getCard(rC);
-                deckOfPlayingCards[deckGroupIndex].removeCardFromGroup(rC);
-                deckOfPlayingCards[deckGroupIndex].insertCardToGroup(removedCard, iC);
+                // get the Ace of the current suit (initially the twelfth card)
+                removedCard = deckOfPlayingCards[deckGroupIndex].GetCard(rC);
+
+                // remove the Ace of the current suit
+                deckOfPlayingCards[deckGroupIndex].RemoveCardFromGroup(rC);
+
+                // insert the Ace in front of the Two card of the current suit (the zero position)
+                deckOfPlayingCards[deckGroupIndex].InsertCardToGroup(removedCard, iC);
             }
 
         }
 
         private void GatherGroupOfCards(int xCoord, int yCoord, int groupIndex)
         {
-            int groupCount = deckOfPlayingCards[groupIndex].getCount();
-            int offset = 0;
-
+            int groupCount = deckOfPlayingCards[groupIndex].GetCount();     // the count of cards in the target group
+            int offset = 0;                                                 // value to add to the X and Y coordinates so the cards are stacked
+                                                                            // slightly spread out so the deck appears to have a little 
+                                                                            // three-dimensional height
+                                                                            // if there are cards in the group    
             if (groupCount > 0)
             {
+                // starting with the last card, loop backward through the cards counting down
                 for (int card = groupCount - 1; card >= 0; card--)
                 {
+                    // calculate the offset
                     offset = card / 5;
+
+                    // set the position of the card on the application form
                     deckOfPlayingCards[groupIndex].Group[card].SetLocation(xCoord + offset, yCoord + offset);
+
+                    // set the card so it is facing down
                     deckOfPlayingCards[groupIndex].Group[card].TurnCardDown();
+
+                    // display the back image of the card
                     deckOfPlayingCards[groupIndex].Group[card].DisplayCardImage();
+
+                    // bring the cards picturebox to the front so the card is on top of the previous cards
                     deckOfPlayingCards[groupIndex].Group[card].pctrBxCard.BringToFront();
                 }
 
+                // set the state of the target group to Gathered
                 deckOfPlayingCards[groupIndex].State = State.Gathered;
+
+                // instantiate the gather point for the Location property of the target group
                 Point groupLocation = new Point(xCoord, yCoord);
+
+                // set the Location property of the target group to the gather point
                 deckOfPlayingCards[groupIndex].Location = groupLocation;
 
             }
+            // if there are no cards in the group
             else
+                // display an error message
                 MessageBox.Show("Attempted to gather an empty group of cards.\nIdentifier = " + deckOfPlayingCards[groupIndex].Identifier);
         }
 
         private void SpreadGroupOfCards(int xCoord, int yCoord, int groupIndex)
         {
 
-            int groupCount = deckOfPlayingCards[groupIndex].getCount();
-            
+            int groupCount = deckOfPlayingCards[groupIndex].GetCount();     // number of cards in the target group of cards
+
+            // check to see if there are cards in the target group to be spread
             if (groupCount > 0)
             {
+                // loop through once for each card in the target group
                 for (int card = 0; card < groupCount; card++)
                 {
-                    deckOfPlayingCards[groupIndex].Group[card].SetLocation(card * spreadOffset + xCoord, yCoord);
+                    // set the position of the current card on the application form
+                    deckOfPlayingCards[groupIndex].Group[card].SetLocation(card * SPREAD_OFFSET + xCoord, yCoord);
+
+                    // turn up the current card
                     deckOfPlayingCards[groupIndex].Group[card].TurnCardUp();
+
+                    // display the face image of the current card
                     deckOfPlayingCards[groupIndex].Group[card].DisplayCardImage();
+
+                    // bring the picturebox of the current card to the front so it is over the previous card
                     deckOfPlayingCards[groupIndex].Group[card].pctrBxCard.BringToFront();
                 }
 
+                // set the state of the target group of cards to Spread
                 deckOfPlayingCards[groupIndex].State = State.Spread;
+
+                // create a new point to set the Location property of the target group
                 Point groupLocation = new Point(xCoord, yCoord);
+
+                // set the Location property of the target group which positions the group at the target coordinates
                 deckOfPlayingCards[groupIndex].Location = groupLocation;
 
             }
+            // if there are no cards in the target group
             else
+                // display an error message indicating an attempt was made to spread an empty group and include the identifier of the target group
                 MessageBox.Show("Attempted to spread an empty group of cards.\nIdentifier = " + deckOfPlayingCards[groupIndex].Identifier);
 
         }
@@ -634,40 +822,57 @@ namespace WAR_Card_Game
         private void ShuffleGroupOfCards(int groupIndex)
         {
 
-            int shuffleIndex;
-            int groupCount = deckOfPlayingCards[groupIndex].getCount();
+            int shuffleIndex;                                               // randomly chosen index into the group of cards to be shuffled
+            int groupCount = deckOfPlayingCards[groupIndex].GetCount();     // number of cards in the target group of cards
 
+            // check to see if there are cards in the target group to be shuffled
             if (groupCount > 0)
             {
+                // loop through once for each card in the target group 
                 for (int c = 0; c < groupCount; c++)
                 {
-                    shuffleIndex = rand.Next(deckOfPlayingCards[groupIndex].getCount());
-                    deckOfPlayingCards[shuffleGroupIndex].addCardToGroup(deckOfPlayingCards[groupIndex].getCard(shuffleIndex));
-                    deckOfPlayingCards[groupIndex].removeCardFromGroup(shuffleIndex);
+                    // randomly pick a card from the remaining cards in the target group
+                    shuffleIndex = rand.Next(deckOfPlayingCards[groupIndex].GetCount());
+
+                    // add the randomly chosen card from the target group into the shuffle group
+                    deckOfPlayingCards[shuffleGroupIndex].AddCardToGroup(deckOfPlayingCards[groupIndex].GetCard(shuffleIndex));
+
+                    // remove the randomly chosen card from the target group
+                    deckOfPlayingCards[groupIndex].RemoveCardFromGroup(shuffleIndex);
 
                 }
 
+                // loop through once for each card in the shuffle group
                 for (int c = 0; c < groupCount; c++)
                 {
-                    shuffleIndex = rand.Next(deckOfPlayingCards[shuffleGroupIndex].getCount());
-                    deckOfPlayingCards[groupIndex].addCardToGroup(deckOfPlayingCards[shuffleGroupIndex].getCard(shuffleIndex));
-                    deckOfPlayingCards[shuffleGroupIndex].removeCardFromGroup(shuffleIndex);
+                    // randomly pick a card from the remaining cards in the shuffle group
+                    shuffleIndex = rand.Next(deckOfPlayingCards[shuffleGroupIndex].GetCount());
+
+                    // add the randomly chosen card from the shuffle group back to the target group
+                    deckOfPlayingCards[groupIndex].AddCardToGroup(deckOfPlayingCards[shuffleGroupIndex].GetCard(shuffleIndex));
+
+                    // remove the randomly chosen card from the shuffle group
+                    deckOfPlayingCards[shuffleGroupIndex].RemoveCardFromGroup(shuffleIndex);
                 }
 
-                //if group is in the gathered state, gather the group of cards
+                //if the target group is in the gathered state 
                 if (deckOfPlayingCards[groupIndex].State == State.Gathered)
                 {
+                    // gather the group of cards at the target group's location
                     GatherGroupOfCards(deckOfPlayingCards[groupIndex].Location.X, deckOfPlayingCards[groupIndex].Location.Y, groupIndex);
                 }
-                // if group is in the spread state, spread the group of cards
+                // if the target group is in the spread state
                 else if (deckOfPlayingCards[groupIndex].State == State.Spread)
                 {
+                    // spread the target group of cards at the target group's location
                     SpreadGroupOfCards(deckOfPlayingCards[groupIndex].Location.X, deckOfPlayingCards[groupIndex].Location.Y, groupIndex);
                 }
 
 
             }
+            // if there are no cards in the target group
             else
+                // display an error message indicating an attempt was made to shuffle an empty group and include the identifier of the target group
                 MessageBox.Show("Attempted to shuffle an empty group of cards.\nIdentifier = " + deckOfPlayingCards[groupIndex].Identifier);
 
         }
@@ -683,7 +888,7 @@ namespace WAR_Card_Game
             while (!found && group < deckOfPlayingCards.Count)
             {
                 card = 0;
-                while (!found && card < deckOfPlayingCards[group].getCount())
+                while (!found && card < deckOfPlayingCards[group].GetCount())
                 {
                     if (deckOfPlayingCards[group].Group[card].Selected)
                     {
@@ -716,7 +921,7 @@ namespace WAR_Card_Game
                 this.Focus();
                 deckOfPlayingCards[selectedCardReference.Group].Group[selectedCardReference.Card].pctrBxCard.Enabled = true;
             }
-                                    
+
         }
 
         private void IdentifySelectedCard(object sender, EventArgs e)
@@ -728,9 +933,9 @@ namespace WAR_Card_Game
                 // when found
                 //deckOfPlayingCards[selectedCardReference.Group].Group[selectedCardReference.Card].deselectCard();
                 //deckOfPlayingCards[selectedCardReference.Group].Group[selectedCardReference.Card].displayCardImage();
-                lblOutput.Text = "Selected card: " + 
+                lblOutput.Text = "Selected card: " +
                     deckOfPlayingCards[selectedCardReference.Group].Group[selectedCardReference.Card].FaceValue.ToString() + " of " +
-                    deckOfPlayingCards[selectedCardReference.Group].Group[selectedCardReference.Card].Suit.ToString(); 
+                    deckOfPlayingCards[selectedCardReference.Group].Group[selectedCardReference.Card].Suit.ToString();
             }
             else
             {
@@ -754,134 +959,227 @@ namespace WAR_Card_Game
 
         private int ReturnGroupIndexGivenIdentifier(string targetIdentifier)
         {
-            int i = 0, index = -1;
-            bool found = false;
+            int i = 0,                      // index of the curent group whose identifier is being checked for a match to the target identifier
+                index = -1;                 // index of the group whose identifier matches the target identifier
+            bool found = false;             // flag indicating whether or not a match was found
 
+            // while a match has not been found and the index of the current group is less than the count of groups in the deck
             while (!found && i < deckOfPlayingCards.Count)
             {
+                // if the current group's identifier matches the target identifier
                 if (deckOfPlayingCards[i].Identifier.ToLower() == targetIdentifier.ToLower())
                 {
+                    // set the index of the matching group equal to the index of the current group
                     index = i;
+
+                    // set the flag to indicate a match was found
                     found = true;
                 }
+                // if current group's identifier doesn't match the target identifier
                 else
+                    // keeping looking by incrementing the current group index
                     i++;
             }
 
             // if index was not found
             if (!found)
-                MessageBox.Show("Group " + targetIdentifier + " index not found");
+                // display an error message
+                MessageBox.Show("Group \"" + targetIdentifier + "\" index not found");
 
+            // return the index of the group whose identifier matches the target identifier
             return index;
         }
 
         private void TransferFirstGroupOfCardsToSecondGroup(int group1Index, int group2Index)
         {
-            int group1Count = deckOfPlayingCards[group1Index].getCount();
+            int group1Count = deckOfPlayingCards[group1Index].GetCount();       // number of cards in the target group 1
 
+            // check if there are cards in the target group 1
             if (group1Count > 0)
             {
                 // add cards from group 1 to group 2
+
+                // loop through the cards in target group 1
                 for (int c = 0; c < group1Count; c++)
                 {
-                    deckOfPlayingCards[group2Index].addCardToGroup(deckOfPlayingCards[group1Index].getCard(c));
+                    // get the currently indexed card from the target group 1 and add it to the target group 2
+                    deckOfPlayingCards[group2Index].AddCardToGroup(deckOfPlayingCards[group1Index].GetCard(c));
                 }
 
+                // loop through the cards in target group 1 once for each card
                 for (int c = 0; c < group1Count; c++)
                 {
-                    // remove cards from group 1
-                    deckOfPlayingCards[group1Index].removeCardFromGroup(0);
+                    // remove first card from the remaining cards in target group 1
+                    deckOfPlayingCards[group1Index].RemoveCardFromGroup(0);
                 }
 
             }
+            // if there are no cards in target group 1
             else
+                // display an error message indicating that an attempt was made to transfer an empty group which includes the target group 1 identifier
                 MessageBox.Show("Attempted to transfer an empty group of cards.\nIdentifier = " + deckOfPlayingCards[group1Index].Identifier);
         }
 
         private void TransferFirstCardOfFirstGroupToSecondGroup(int group1Index, int group2Index)
         {
-            int group1Count = deckOfPlayingCards[group1Index].getCount();
+            int group1Count = deckOfPlayingCards[group1Index].GetCount();           // number of cards in target group 1
 
+            // check that there are cards in the target group 1
             if (group1Count > 0)
             {
-                deckOfPlayingCards[group2Index].addCardToGroup(deckOfPlayingCards[group1Index].getCard(0));
-                deckOfPlayingCards[group1Index].removeCardFromGroup(0);
+                // get the first card from target group 1 and add it to target group 2
+                deckOfPlayingCards[group2Index].AddCardToGroup(deckOfPlayingCards[group1Index].GetCard(0));
+
+                // remove the first card from target group 1
+                deckOfPlayingCards[group1Index].RemoveCardFromGroup(0);
             }
+            // if there are no cards in target group 1
             else
+                // display an error messaage that an attempt was made to transfer a card from an empty group and include the target group 1 identifier
                 MessageBox.Show("Attempted to transfer a card from an empty group of cards.\nIdentifier = " + deckOfPlayingCards[group1Index].Identifier);
         }
 
         private void SetUpToPlayWAR()
         {
+            // check if the deck is split 
             if (isDeckSplit == true)
             {
+                // if the deck is split
+
+                // set the warLevel to zero (indicating that there currently is no "WAR")
                 warLevel = 0;
 
+                gameDefault = false;
+
+                // gather the first half of the deck at the point at which the Top Player will deal cards from
                 GatherGroupOfCards(centeredCardX, setUpTPY, firstHalfGroupIndex);
 
+                // gather the second half of the deck at the point at which the Bottom Player will deal cards from
                 GatherGroupOfCards(centeredCardX, setUpBPY, secondHalfGroupIndex);
 
+                // transfer the first half group to the topPlayer group
                 TransferFirstGroupOfCardsToSecondGroup(firstHalfGroupIndex, topPlayerGroupIndex);
 
+                // transfer the second half group to the bottomPlayer group 
                 TransferFirstGroupOfCardsToSecondGroup(secondHalfGroupIndex, bottomPlayerGroupIndex);
 
                 // set player names
+
+                // read the Top Player's name from the Top Player Name textbox on the Intro Form to the Name property of the Top Player player object
+                // in the warPlayers List
                 warPlayers[topPlayerIndex].Name = startForm.txtBxTopPlayerName.Text;
+
+                // read the Bottom Player's name from the Bottom Player Name textbox on the Intro Form to the Name property of the Bottom Player player 
+                // object in the warPlayers List
                 warPlayers[bottomPlayerIndex].Name = startForm.txtBxBottomPlayerName.Text;
 
                 // set player starting scores
-                warPlayers[topPlayerIndex].Score = deckOfPlayingCards[topPlayerGroupIndex].getCount();
-                warPlayers[bottomPlayerIndex].Score = deckOfPlayingCards[bottomPlayerGroupIndex].getCount();
 
-                topPlayerLabelPoint = new Point();
-                topPlayerLabelPoint.X = centeredCardX + cardWidth + 10;
-                topPlayerLabelPoint.Y = setUpTPY + (cardHeight / 3);
+                // set the Top Player player object's Score property from the number of cards in the topPlayer group
+                warPlayers[topPlayerIndex].Score = deckOfPlayingCards[topPlayerGroupIndex].GetCount();
+
+                // set the Bottom Player player object's Score property from the number of cards in the bottomPlayer group
+                warPlayers[bottomPlayerIndex].Score = deckOfPlayingCards[bottomPlayerGroupIndex].GetCount();
+
+                // set the text of the Top Player's identifier, name and score label
                 lblTopPlayer.Text = warPlayers[topPlayerIndex].Identifier + ": " + warPlayers[topPlayerIndex].Name + "\nScore: " + warPlayers[topPlayerIndex].Score;
+
+                // instantiate the point for setting the location of the Top Player's identifier, name and score label
+                topPlayerLabelPoint = new Point();
+
+                // calculate the X coordinate for setting the location of the Top Player's identifier, name and score label 
+                topPlayerLabelPoint.X = centeredCardX + CARD_WIDTH + SPACING_GAP;
+
+                // calculate the Y coordinate for setting the location of the Top Player's identifier, name and score label
+                topPlayerLabelPoint.Y = setUpTPY + (CARD_HEIGHT / 3);
+
+                // make the Top Player's identifier, name and score label visible
                 lblTopPlayer.Visible = true;
 
+                // set the text of the Bottom Player's identifier, name and score label
                 lblBottomPlayer.Text = warPlayers[bottomPlayerIndex].Identifier + ": " + warPlayers[bottomPlayerIndex].Name + "\nScore: " + warPlayers[bottomPlayerIndex].Score;
+
+                // instantiate the point for setting the location of the Bottom Player's identifier, name and score label
                 bottomPlayerLabelPoint = new Point();
+
+                // calculate the X coordinate for setting the location of the Bottom Player's identifier, name and score label
                 bottomPlayerLabelPoint.X = centeredCardX - lblBottomPlayer.Size.Width - 30;
-                bottomPlayerLabelPoint.Y = setUpBPY + (cardHeight / 3);
+
+                // calculate the Y coordinate for setting the location of the Bottom Player's identifier, name and score label
+                bottomPlayerLabelPoint.Y = setUpBPY + (CARD_HEIGHT / 3);
+
+                // make the Bottom Player's identifier, name and score label visible
                 lblBottomPlayer.Visible = true;
 
+                // set the position of the Top Player's identifier, name and score label on the application form
                 lblTopPlayer.Location = topPlayerLabelPoint;
+
+                // set the position of the Bottom Player's identifier, name and score label on the application form
                 lblBottomPlayer.Location = bottomPlayerLabelPoint;
-                
+
+                // set the flag indicating that a game is now playing
                 isGamePlaying = true;
-                                
+
             }
         }
 
         private void PlayWAR(object sender, EventArgs e)
         {
+            // check if a game is already playing
             if (isGamePlaying == false)
             {
+                // if no game is currently playing, check if the deck is split
                 if (isDeckSplit == false)
                 {
-                    // shuffle deck ten times
+                    // if no game is playing and the deck is not split
+                    // loop ten times
                     for (int i = 1; i <= 10; i++)
                     {
+                        // shuffle the deckGroup
                         ShuffleGroupOfCards(deckGroupIndex);
                     }
                 }
 
+                // split the deckGroup
                 SplitTheDeck(sender, e);
+
+                // set up to play a WAR card game
                 SetUpToPlayWAR();
+
+                // change the text on the start WAR card game context menu item 
                 startWARCardGameToolStripMenuItem.Text = "Play War Card Game";
 
+                // get the game start time
                 gameStartTime = DateTime.Now;
 
+                // set the Game Start Time label text
                 lblGameStartTime.Text = "Game Start Time: " + gameStartTime.ToString("hh:mm:ss tt");
+
+                // make the Game Start Time label visible
                 lblGameStartTime.Visible = true;
+
+                // make the Game Duration label visible
                 lblGameDuration.Visible = true;
+
+                // set the Round label text 
                 lblRound.Text = "Round\n" + round;
+
+                // make the Round label visible
                 lblRound.Visible = true;
 
+                // enable the Deal Cards Context Menu item
                 dealCardsToolStripMenuItem.Enabled = true;
+
+                // make the Deal Cards Context Menu item visible
                 dealCardsToolStripMenuItem.Visible = true;
+
+                // disable the Compare Cards Context Menu item
                 compareCardsToolStripMenuItem.Enabled = false;
+
+                // make the Compare Cards Context Menu item visible so the user will know they can select it in the future
                 compareCardsToolStripMenuItem.Visible = true;
+
+                // update the Output label
                 UpdateOutputLabel();
             }
         }
@@ -890,7 +1188,7 @@ namespace WAR_Card_Game
         //public void AutoPlayMultipleGames(object sender, EventArgs e)
         {
             // get the number of games to autoplay from the test form;
-            int numberOfGames, minRounds, minIndex = 0, maxRounds, maxIndex = 0;
+            int numberOfGames, minRounds, minIndex = 0, maxRounds, maxIndex = 0, milliseconds;
             List<int> roundList = new List<int>();
             List<string> durationList = new List<string>();
 
@@ -898,7 +1196,7 @@ namespace WAR_Card_Game
             {
                 if (numberOfGames > 0)
                 {
-                    
+
                     for (int game = 1; game <= numberOfGames; game++)
                     {
                         testForm.lblCurrentGameRunning.Text = "Current game running: " + game;
@@ -914,7 +1212,7 @@ namespace WAR_Card_Game
                             while (i <= 10000 && isGamePlaying == true)
                             {
                                 DealTheCards(sender, e);
-                                int milliseconds = 10;
+                                milliseconds = 1;
                                 await Task.Delay(milliseconds);
                                 i++;
                                 if (isGamePlaying == true)
@@ -925,42 +1223,53 @@ namespace WAR_Card_Game
                             }
                         }
 
+                        string defaultStatus = "";
+
+                        if (gameDefault == true)
+                            defaultStatus = "DEFAULT";
+                        else
+                            defaultStatus = "       ";
+
                         string listString = game + "   " + gameStartTime.ToString("hh:mm:ss tt") + "   " + gameEndTime.ToString("hh:mm:ss tt")
-                            + "   " + GetGameDuration() + "   " + round;
+                            + "   " + GetGameDuration() + "   " + round + "   " + defaultStatus + "  WL: " + warLevel + 
+                            " TPS: " + warPlayers[topPlayerIndex].Score + " BPS: " + warPlayers[bottomPlayerIndex].Score +
+                            " DC: " + dealtCardCount;
+
                         roundList.Add(round);
                         durationList.Add(GetGameDuration());
                         testForm.lstBxGamesInfoDisplay.Items.Add(listString);
 
+                        // find the min and max number of round and their indexes
+                        minRounds = roundList[0];
+
+                        for (int r = 0; r < roundList.Count; r++)
+                        {
+                            if (roundList[r] < minRounds)
+                            {
+                                minRounds = roundList[r];
+                                minIndex = r;
+                            }
+                        }
+                        maxRounds = roundList[0];
+                        for (int r = 0; r < roundList.Count; r++)
+                        {
+                            if (roundList[r] > maxRounds)
+                            {
+                                maxRounds = roundList[r];
+                                maxIndex = r;
+                            }
+                        }
+
+                        testForm.lblMinRoundsGameNumber.Text = "#: " + (minIndex + 1);
+                        testForm.lblMaxRoundsGameNumber.Text = "#: " + (maxIndex + 1);
+                        testForm.lblMinRounds.Text = "Min Rounds: " + minRounds;
+                        testForm.lblMaxRounds.Text = "Max Rounds: " + maxRounds;
+                        testForm.lblMinDuration.Text = "Min Dur: " + durationList[minIndex];
+                        testForm.lblMaxDuration.Text = "Max Dur: " + durationList[maxIndex];
+
                         ResetGame(sender, e);
                     }
-
-                    // find the min and max number of round and their indexes
-                    minRounds = roundList[0];
-
-                    for (int r = 0; r < roundList.Count; r++)
-                    {
-                        if (roundList[r] < minRounds)
-                        {
-                            minRounds = roundList[r];
-                            minIndex = r;
-                        }
-                    }
-                    maxRounds = roundList[0];
-                    for (int r = 0; r < roundList.Count; r++)
-                    {
-                        if (roundList[r] > maxRounds)
-                        {
-                            maxRounds = roundList[r];
-                            maxIndex = r;
-                        }
-                    }
-
-                    testForm.lblMinRoundsGameNumber.Text = "#: " + (minIndex + 1);
-                    testForm.lblMaxRoundsGameNumber.Text = "#: " + (maxIndex + 1);
-                    testForm.lblMinRounds.Text = "Min Rounds: " + minRounds;
-                    testForm.lblMaxRounds.Text = "Max Rounds: " + maxRounds;
-                    testForm.lblMinDuration.Text = "Min Dur: " + durationList[minIndex];
-                    testForm.lblMaxDuration.Text = "Max Dur: " + durationList[maxIndex];
+                                       
 
                 }
                 else
@@ -968,6 +1277,10 @@ namespace WAR_Card_Game
             }
             else
                 MessageBox.Show("You must enter an integer number");
+
+            // reenable the engage and clear buttons
+            testForm.btnEngage.Enabled = true;
+            testForm.btnClear.Enabled = true;
         }
 
         private string GetGameDuration()
@@ -995,640 +1308,982 @@ namespace WAR_Card_Game
             isAutoPlaying = false;
         }
 
+        private void AutoPlayThroughToEnd(object sender, EventArgs e)
+        {
+            warThreshold = 100;
+            AutoPlayGame(sender, e);
+
+        }
+
+        private void autoPlayUntilWARLevel1(object sender, EventArgs e)
+        {
+            warThreshold = 1;
+            AutoPlayGame(sender, e);
+
+        }
+
+        private void AutoPlayUntilWARLevel2(object sender, EventArgs e)
+        {
+            warThreshold = 2;
+            AutoPlayGame(sender, e);
+
+        }
+
+        private void AutoPlayUntilWARLevel3(object sender, EventArgs e)
+        {
+            warThreshold = 3;
+            AutoPlayGame(sender, e);
+
+        }
+
         async private void AutoPlayGame(object sender, EventArgs e)
         {
-            int i;
+            int r,                              // loop counter for number of rounds game has been played
+                milliseconds = 1;                   // the time of the delay (in milliseconds) that the game is displayed
+                                                // so the user(s) may see the state of the game
 
+            // check to see that a game is not already autoplaying
             if (isAutoPlaying == false)
             {
+                // set the flag to indicate that a game is now autoplaying
                 isAutoPlaying = true;
+
+                // update the Output label
                 UpdateOutputLabel();
+
                 // reconfigure context menu
+
+                // disable and make invisible the AutoPlay Game context menu item
                 autoPlayGameToolStripMenuItem.Enabled = false;
                 autoPlayGameToolStripMenuItem.Visible = false;
+
+                // enable and make visible the Stop AutoPlay context menu item
                 stopAutoPlayToolStripMenuItem.Enabled = true;
                 stopAutoPlayToolStripMenuItem.Visible = true;
 
-                startWARCardGameToolStripMenuItem.Visible = false; 
+                // disable and make invisible the Start WAR Card Game context menu item
+                startWARCardGameToolStripMenuItem.Enabled = false;
+                startWARCardGameToolStripMenuItem.Visible = false;
 
+                // check to see if a manual game has not started
                 if (isGamePlaying == false)
                 {
-                    // if game hasn't started yet
-                    i = 1;
+                    // if a game hasn't started yet
 
+                    // set the round loop counter to one
+                    r = 1;
+
+                    // begin to play an autoplay game
                     PlayWAR(sender, e);
 
-                    while (i <= 10000 && isGamePlaying == true && isAutoPlaying == true)
+                    // loop through rounds of the game until the game is either called a draw or the game ends or the user stops autoplaying
+                    // or the war level rises to the threshold
+                    while (r <= drawMaxRounds && isGamePlaying == true && isAutoPlaying == true && warLevel < warThreshold)
                     {
+                        // deal the cards
                         DealTheCards(sender, e);
-                        int milliseconds = 100;
-                        //Thread.Sleep(milliseconds);
+
+                        // set the game display delay
+                        //milliseconds = 1;
+                        
+                        // implement the delay
                         await Task.Delay(milliseconds);
-                        i++;
+
+                        // increment the round loop counter
+                        r++;
+
+                        // check if the game has ended
                         if (isGamePlaying == true)
                         {
+                            // if the game has not ended, compare the cards
                             CompareTheCards(sender, e);
 
                         }
                     }
                 }
+                // check to see if a manual game has started
                 else
                 {
                     // if game has started
                     // finish the current round
 
-                    // if the current round  is in the "deal the cards" phase
+                    // if the current round is in the "deal the cards" phase
                     if (dealCardsToolStripMenuItem.Enabled == true)
                     {
+                        // deal the cards
                         DealTheCards(sender, e);
+
+                        // check to see if the game has ended
                         if (isGamePlaying == true)
                         {
+                            // if the game has not ended, compare the cards
                             CompareTheCards(sender, e);
 
                         }
                     }
+                    // if the current round is in the "compare the cards" phase
                     else if (compareCardsToolStripMenuItem.Enabled == true)
-                        // if the current round is in the "compare the cards" phase
+                        // compare the cards
                         CompareTheCards(sender, e);
 
-                    i = 1;
+                    // set the loop counter to the current round
+                    r = round;
 
-                    while (i <= 10000 && isGamePlaying == true && isAutoPlaying == true)
+                    // loop through rounds of the game until the game is either called a draw or the game ends or the user stops autoplaying
+                    // or the war level rises to the threshold
+                    while (r <= drawMaxRounds && isGamePlaying == true && isAutoPlaying == true && warLevel < warThreshold)
                     {
+                        // deal the cards
                         DealTheCards(sender, e);
-                        int milliseconds = 100;
-                        //Thread.Sleep(milliseconds);
+
+                        // set the game display delay
+                        //milliseconds = 1;
+
+                        // implement the delay
                         await Task.Delay(milliseconds);
-                        i++;
+
+                        // increment the loop counter
+                        r++;
+
+                        // check to see if the game has ended
                         if (isGamePlaying == true)
                         {
+                            // if the game has not ended, compare the cards
                             CompareTheCards(sender, e);
 
                         }
                     }
                 }
 
+                // set the flag to indicate that the game has stopped autoplaying
                 isAutoPlaying = false;
+
+                // update the Output label
                 UpdateOutputLabel();
                 // reconfigure context menu
+
+                // if the user has stopped autoplay and the game is not yet awaiting reset
                 if (awaitingReset == false)
                 {
+                    // enable and make visible the AutoPlay Game context menu item
                     autoPlayGameToolStripMenuItem.Enabled = true;
                     autoPlayGameToolStripMenuItem.Visible = true;
+
+                    // enable and make visible the Start WAR Card Game context menu item
+                    startWARCardGameToolStripMenuItem.Enabled = true;
                     startWARCardGameToolStripMenuItem.Visible = true;
+
                 }
+                
+                // disable and make invisible the Stop AutoPlay context menu item
                 stopAutoPlayToolStripMenuItem.Enabled = false;
                 stopAutoPlayToolStripMenuItem.Visible = false;
 
-                
             }
-            //MessageBox.Show("Number of rounds = " + i);
-            //resetGame();
+            
         }
 
         private bool ReadyForTransfer(int playerCardsGroupIndex, int playerWonCardsGroupIndex, int gatherX, int gatherY)
         {
             // this method checks if a player has cards remaining that can be dealt
 
-            bool ready = false;     // flag indicating readiness to be able to deal from a player's playerCardsGroup
+            bool ready = false;     // flag indicating readiness to be able to deal from a player's player cards group
 
-            // if the player has cards in his playerCards group
-            if (deckOfPlayingCards[playerCardsGroupIndex].getCount() > 0)
+            // if the player has cards in his or her player cards group
+            if (deckOfPlayingCards[playerCardsGroupIndex].GetCount() > 0)
             {
-                // then he is ready to deal cards from his playerCardsGroup so set the ready flag
+                // then he or she is ready to deal cards from his or her player cards group so set the ready flag
                 ready = true;
             }
-            // if the player doesn't have cards in his playerCards group but does have cards in his playerWonCards group
-            else if (deckOfPlayingCards[playerCardsGroupIndex].getCount() == 0 && deckOfPlayingCards[playerWonCardsGroupIndex].getCount() > 0)
+            // if the player doesn't have cards in his player cards group but does have cards in his player won cards group
+            else if (deckOfPlayingCards[playerCardsGroupIndex].GetCount() == 0 && deckOfPlayingCards[playerWonCardsGroupIndex].GetCount() > 0)
             {
-                // then transfer the Won cards to the Player cards group
-                TransferFirstGroupOfCardsToSecondGroup(playerWonCardsGroupIndex, playerCardsGroupIndex);
-                // shuffle 3 times to keep the cards from getting in a configuration in which the players just trade cards back and forth
-                // endlessly
-                ShuffleGroupOfCards(playerCardsGroupIndex);
-                ShuffleGroupOfCards(playerCardsGroupIndex);
-                ShuffleGroupOfCards(playerCardsGroupIndex);
-                // regather the cards
-                GatherGroupOfCards(gatherX, gatherY, playerCardsGroupIndex);
+                //
+                RegatherPlayerCards(playerCardsGroupIndex, playerWonCardsGroupIndex, gatherX, gatherY);
+
                 // then set the ready flag
                 ready = true;
 
             }
             // if the player is all out of cards
-            else if (deckOfPlayingCards[playerCardsGroupIndex].getCount() == 0 && deckOfPlayingCards[playerWonCardsGroupIndex].getCount() == 0)
+            else if (deckOfPlayingCards[playerCardsGroupIndex].GetCount() == 0 && deckOfPlayingCards[playerWonCardsGroupIndex].GetCount() == 0)
             {
-                //MessageBox.Show(deckOfPlayingCards[playerCardsGroupIndex].Identifier + " has no cards to deal");
                 // reset the ready flag
                 ready = false;
             }
 
+            // return the ready flag value
             return ready;
 
         }
 
+        private void NonWARDeal(int cardIndex, int yCoord, int targetWARPlayerIndex)
+        {
+            // set the position of the dealt card on the application form
+            deckOfPlayingCards[dealtCardsGroupIndex].Group[cardIndex].SetLocation(centeredCardX, yCoord);
+
+            // turn up the Top Player's dealt card
+            deckOfPlayingCards[dealtCardsGroupIndex].Group[cardIndex].TurnCardUp();
+
+            // display the face image of the dealt card
+            deckOfPlayingCards[dealtCardsGroupIndex].Group[cardIndex].DisplayCardImage();
+
+            // set the target player's comparison card CardReference so the players' cards can be compared later in the CompareTheCards method
+
+            // set the target player's comparison card CardReference Group property
+            warPlayers[targetWARPlayerIndex].ComparisonCard.Group = dealtCardsGroupIndex;
+
+            //  set the target player's comparison card CardReference Card property
+            warPlayers[targetWARPlayerIndex].ComparisonCard.Card = cardIndex;
+        }
+
+        private void WARDeal(int targetWARPlayerIndex)
+        {
+            int xCoordP = 0, yCoordP = 0;                                   // X and Y coordinates of the position to place the WAR cards
+                                                                            // on the application form
+
+            // if the target player is the top player
+            if (targetWARPlayerIndex == topPlayerIndex)
+            {
+                // place the cards at coordinates to the left of the previously dealt cards so all dealt cards can be seen
+                xCoordP = centeredCardX - ((SPACING_GAP + CARD_WIDTH) * warLevel);
+                yCoordP = firstCardTPY;
+            }
+            // if the target player is the bottom player
+            else if (targetWARPlayerIndex == bottomPlayerIndex)
+            {
+                // place the cards at coordinates to the right of the previously dealt cards so all dealt cards can be seen
+                xCoordP = centeredCardX + ((SPACING_GAP + CARD_WIDTH) * warLevel);
+                yCoordP = firstCardBPY;
+            }
+
+            // deal the down card
+            // set location of card that is turned down (displace the down card slightly so the user can see that it's there)
+            deckOfPlayingCards[warPlayers[targetWARPlayerIndex].ComparisonCard.Group].Group[warPlayers[targetWARPlayerIndex].ComparisonCard.Card - 1].SetLocation(xCoordP + 10, yCoordP + 10);
+
+            // turn the card down
+            deckOfPlayingCards[warPlayers[targetWARPlayerIndex].ComparisonCard.Group].Group[warPlayers[targetWARPlayerIndex].ComparisonCard.Card - 1].TurnCardDown();
+
+            // display the back image of the  down card
+            deckOfPlayingCards[warPlayers[targetWARPlayerIndex].ComparisonCard.Group].Group[warPlayers[targetWARPlayerIndex].ComparisonCard.Card - 1].DisplayCardImage();
+
+            // bring the down card's picturebox to front so it is over any previous card
+            deckOfPlayingCards[warPlayers[targetWARPlayerIndex].ComparisonCard.Group].Group[warPlayers[targetWARPlayerIndex].ComparisonCard.Card - 1].pctrBxCard.BringToFront();
+
+            // deal the up card
+            // set location of card that is turned up
+            deckOfPlayingCards[warPlayers[targetWARPlayerIndex].ComparisonCard.Group].Group[warPlayers[targetWARPlayerIndex].ComparisonCard.Card].SetLocation(xCoordP, yCoordP);
+
+            // turn the card up
+            deckOfPlayingCards[warPlayers[targetWARPlayerIndex].ComparisonCard.Group].Group[warPlayers[targetWARPlayerIndex].ComparisonCard.Card].TurnCardUp();
+
+            // display the face image of the up card
+            deckOfPlayingCards[warPlayers[targetWARPlayerIndex].ComparisonCard.Group].Group[warPlayers[targetWARPlayerIndex].ComparisonCard.Card].DisplayCardImage();
+
+            // bring the up card's picturebox to front so it is over the down card
+            deckOfPlayingCards[warPlayers[targetWARPlayerIndex].ComparisonCard.Group].Group[warPlayers[targetWARPlayerIndex].ComparisonCard.Card].pctrBxCard.BringToFront();
+        }
+
         private void DealTheCards(object sender, EventArgs e)
         {
+            // if the WAR label is visible, make it invisible so it doesn't cover up the dealt cards
             if (lblWAR.Visible == true)
                 lblWAR.Visible = false;
-
-            //int firstCardTPY = formCenterPoint.Y - (formCenterPoint.Y / 4) - halfCardHeight;
-            //int firstCardBPY = formCenterPoint.Y + (formCenterPoint.Y / 4) - halfCardHeight;
-
-            if (deckOfPlayingCards[topPlayerGroupIndex].getCount() > 0 && deckOfPlayingCards[bottomPlayerGroupIndex].getCount() > 0)
+                        
+            // check the WAR level
+            if (warLevel == 0)
             {
-                if (warLevel == 0)
+                // if there is no WAR going on
+
+                // determine if the Top Player has cards remaining before trying to deal his or her card
+                if (ReadyForTransfer(topPlayerGroupIndex, topPlayerWonCardsGroupIndex, centeredCardX, setUpTPY))
                 {
-                    if (ReadyForTransfer(topPlayerGroupIndex, topPlayerWonCardsGroupIndex, centeredCardX, setUpTPY))
-                        TransferFirstCardOfFirstGroupToSecondGroup(topPlayerGroupIndex, dealtCardsGroupIndex);
-                    else
-                        MessageBox.Show("Error message from line 996");
+                    // if he or she does have cards remaining, transfer the first card from the Top Player's cards group to the dealt cards group
+                    TransferFirstCardOfFirstGroupToSecondGroup(topPlayerGroupIndex, dealtCardsGroupIndex);
 
-                    // transfer the 
+                    // determine if the Bottom Player has cards remaining before trying to deal his or her card 
                     if (ReadyForTransfer(bottomPlayerGroupIndex, bottomPlayerWonCardsGroupIndex, centeredCardX, setUpBPY))
+                    {
+                        // if he or she does have cards remaining, transfer the first card from the Bottom Player's cards group to the dealt cards group
                         TransferFirstCardOfFirstGroupToSecondGroup(bottomPlayerGroupIndex, dealtCardsGroupIndex);
+
+                        // deal the Top Player's card
+                        NonWARDeal(0, firstCardTPY, topPlayerIndex);
+
+                        // deal the Bottom Player's card
+                        NonWARDeal(1, firstCardBPY, bottomPlayerIndex);
+                    }
+                    // if the Bottom Player has no cards remaining
                     else
-                        MessageBox.Show("Error message from line 1002");
+                    {
+                        // set the flag that indicates that a game default has occurred
+                        gameDefault = true;
 
-                    //Point centerPoint = calculateCenterPointOfForm();
-
-                    //int setUpX = centerPoint.X - halfCardWidth;
-
-                    //int FirstCardTPY = centerPoint.Y - (centerPoint.Y / 4) - halfCardHeight;
-
-                    deckOfPlayingCards[dealtCardsGroupIndex].Group[0].SetLocation(centeredCardX, firstCardTPY);
-
-                    // Turn up the Top Player's dealt card
-                    deckOfPlayingCards[dealtCardsGroupIndex].Group[0].TurnCardUp();
-                    deckOfPlayingCards[dealtCardsGroupIndex].Group[0].DisplayCardImage();
-
-                    warPlayers[topPlayerIndex].ComparisonCard.Group = dealtCardsGroupIndex;
-                    warPlayers[topPlayerIndex].ComparisonCard.Card = 0;
-                    //int FirstCardBPX = formSize.Width - 100;
-
-                    //int FirstCardBPY = centerPoint.Y + (centerPoint.Y / 4) - halfCardHeight;
-
-                    deckOfPlayingCards[dealtCardsGroupIndex].Group[1].SetLocation(centeredCardX, firstCardBPY);
-
-                    // turn up Bottom Player's dealt card
-                    deckOfPlayingCards[dealtCardsGroupIndex].Group[1].TurnCardUp();
-                    deckOfPlayingCards[dealtCardsGroupIndex].Group[1].DisplayCardImage();
-
-                    warPlayers[bottomPlayerIndex].ComparisonCard.Group = dealtCardsGroupIndex;
-                    warPlayers[bottomPlayerIndex].ComparisonCard.Card = 1;
-                    //int secondCardTPX = setUpX - (cardWidth + 10);
-
-                    //deckOfPlayingCards[firstHalfGroupIndex].Group[1].setLocation(secondCardTPX, FirstCardTPY);
+                        // handle the game default
+                        GameDefault(bottomPlayerIndex);
+                    }
                 }
-                else if (warLevel > 0)
+                // if the Top Player has no cards remaining
+                else
                 {
+                    // set the flag that indicates that a game default has occurred
+                    gameDefault = true;
 
-                    bool topPlayerHasNoCards = false, bottomPlayerHasNoCards = false;
+                    // handle the game default
+                    GameDefault(topPlayerIndex);
+                }
 
+            }
+            // if there is a WAR going on
+            else if (warLevel > 0)
+            {
+                // determine if the Top Player has cards remaining before trying to deal his or her down card
+                if (ReadyForTransfer(topPlayerGroupIndex, topPlayerWonCardsGroupIndex, centeredCardX, setUpTPY))
+                {
+                    // if he or she does have cards remaining, transfer the first card from the Top Player's cards group to the dealt cards group
+                    TransferFirstCardOfFirstGroupToSecondGroup(topPlayerGroupIndex, dealtCardsGroupIndex);
+
+                    // determine if the Top Player has cards remaining before trying to deal his or her up card
                     if (ReadyForTransfer(topPlayerGroupIndex, topPlayerWonCardsGroupIndex, centeredCardX, setUpTPY))
+                    {
+                        // if he or she does have cards remaining, transfer the first card from the Top Player's cards group to the dealt cards group
                         TransferFirstCardOfFirstGroupToSecondGroup(topPlayerGroupIndex, dealtCardsGroupIndex);
-                    else
-                    {
-                        //MessageBox.Show("Line 973 - Potential WAR Default:\nTop Player has no more cards so Bottom Player wins!");
-                        //lblOutput.Text = "WAR Default:\nTop Player has no more cards so Bottom Player wins!";
 
-                        lblCommentary.Text = "Top Player " + warPlayers[topPlayerIndex].Name + 
-                            " doesn't have enough cards left for the war so Bottom Player " + warPlayers[bottomPlayerIndex].Name +
-                            " wins the game by default!";
+                        // determine if the Bottom Player has cards remaining before trying to deal his or her down card
+                        if (ReadyForTransfer(bottomPlayerGroupIndex, bottomPlayerWonCardsGroupIndex, centeredCardX, setUpBPY))
+                        {
+                            // if he or she does have cards remaining, transfer the first card from the Top Player's cards group to the dealt cards group
+                            TransferFirstCardOfFirstGroupToSecondGroup(bottomPlayerGroupIndex, dealtCardsGroupIndex);
 
-                        topPlayerHasNoCards = true;
-                        End();
-                    }
-                    if (ReadyForTransfer(topPlayerGroupIndex, topPlayerWonCardsGroupIndex, centeredCardX, setUpTPY))
-                        TransferFirstCardOfFirstGroupToSecondGroup(topPlayerGroupIndex, dealtCardsGroupIndex);
-                    else
-                    {
-                        //MessageBox.Show("Line 982 - Potential WAR Default:\nTop Player has no more cards so Bottom Player wins!");
-                        //lblOutput.Text = "WAR Default:\nTop Player has no more cards so Bottom Player wins!"
+                            // determine if the bottom Player has cards remaining before trying to deal his or her up card
+                            if (ReadyForTransfer(bottomPlayerGroupIndex, bottomPlayerWonCardsGroupIndex, centeredCardX, setUpBPY))
+                            {
+                                // if he or she does have cards remaining, transfer the first card from the Top Player's cards group to the dealt cards group
+                                TransferFirstCardOfFirstGroupToSecondGroup(bottomPlayerGroupIndex, dealtCardsGroupIndex);
 
-                        lblCommentary.Text = "Top Player " + warPlayers[topPlayerIndex].Name +
-                            " doesn't have enough cards left for the war so Bottom Player " + warPlayers[bottomPlayerIndex].Name +
-                            " wins the game by default!";
+                                // deal top player's war cards (one down one up)
 
-                        topPlayerHasNoCards = true;
-                        End();
-                    }
+                                // set the top player's comparison card CardReference Group property
+                                warPlayers[topPlayerIndex].ComparisonCard.Group = dealtCardsGroupIndex;
 
-                    if (ReadyForTransfer(bottomPlayerGroupIndex, bottomPlayerWonCardsGroupIndex, centeredCardX, setUpBPY))
-                        TransferFirstCardOfFirstGroupToSecondGroup(bottomPlayerGroupIndex, dealtCardsGroupIndex);
-                    else
-                    {
-                        //MessageBox.Show("Line 992 - Potential WAR Default:\nBottom Player has no more cards so Top Player wins!");
-                        //lblOutput.Text = "WAR Default:\nBottom Player has no more cards so Top Player wins!";
+                                // set the top player's comparison card CardReference Card property
+                                if (warLevel == 1)
+                                    warPlayers[topPlayerIndex].ComparisonCard.Card += 3;
+                                else
+                                    warPlayers[topPlayerIndex].ComparisonCard.Card += 4;
+                                                                
+                                // deal the top player's down card and up card
+                                WARDeal(topPlayerIndex);
 
-                        lblCommentary.Text = "Bottom Player " + warPlayers[bottomPlayerIndex].Name +
-                            " doesn't have enough cards left for the war so Top Player " + warPlayers[topPlayerIndex].Name +
-                            " wins the game by default!";
+                                // deal bottom player's war cards (one down one up)
 
-                        bottomPlayerHasNoCards = true;
-                        End();
-                    }
-                    if (ReadyForTransfer(bottomPlayerGroupIndex, bottomPlayerWonCardsGroupIndex, centeredCardX, setUpBPY))
-                        TransferFirstCardOfFirstGroupToSecondGroup(bottomPlayerGroupIndex, dealtCardsGroupIndex);
-                    else
-                    {
-                        //MessageBox.Show("Line 1001 - Potential WAR Default:\nBottom Player has no more cards so Top Player wins!");
-                        //lblOutput.Text = "WAR Default:\nBottom Player has no more cards so Top Player wins!";
+                                // set the bottom player's comparison card CardReference Group property
+                                warPlayers[bottomPlayerIndex].ComparisonCard.Group = dealtCardsGroupIndex;
 
-                        lblCommentary.Text = "Bottom Player " + warPlayers[bottomPlayerIndex].Name +
-                            " doesn't have enough cards left for the war so Top Player " + warPlayers[topPlayerIndex].Name +
-                            " wins the game by default!";
+                                // set the bottom player's comparison card CardReference Card property
+                                warPlayers[bottomPlayerIndex].ComparisonCard.Card += 4;
 
-                        bottomPlayerHasNoCards = true;
-                        End();
-                    }
-                    if (isGamePlaying == false && warLevel > 0)
-                    {
-                        lblWAR.Visible = false;
-                        lblWAR.Enabled = false;
-                    }
+                                // deal the bottom player's down card and up card
+                                WARDeal(bottomPlayerIndex);
 
-                    if (topPlayerHasNoCards == false && bottomPlayerHasNoCards == false)
-                    {
-                        // deal top players war cards (one down one up)
-                        if (warLevel == 1)
-                            warPlayers[topPlayerIndex].ComparisonCard.Card += 3;
+                            }
+                            // if the bottom player has no cards remaining
+                            else
+                            {
+                                // set the flag that indicates that a game default has occurred
+                                gameDefault = true;
+
+                                // handle the game default
+                                GameDefault(bottomPlayerIndex);
+                            }
+
+                        }
+                        // if the bottom player has no cards remaining
                         else
-                            warPlayers[topPlayerIndex].ComparisonCard.Card += 4;
+                        {
+                            // set the flag that indicates that a game default has occurred
+                            gameDefault = true;
 
-                        int xCoordTP = centeredCardX - ((10 + cardWidth) * warLevel);
+                            // handle the game default
+                            GameDefault(bottomPlayerIndex);
+                        }
 
-                        // set location of turned down card
-                        deckOfPlayingCards[warPlayers[topPlayerIndex].ComparisonCard.Group].Group[warPlayers[topPlayerIndex].ComparisonCard.Card - 1].SetLocation(xCoordTP, firstCardTPY);
-                        deckOfPlayingCards[warPlayers[topPlayerIndex].ComparisonCard.Group].Group[warPlayers[topPlayerIndex].ComparisonCard.Card - 1].TurnCardDown();
-                        deckOfPlayingCards[warPlayers[topPlayerIndex].ComparisonCard.Group].Group[warPlayers[topPlayerIndex].ComparisonCard.Card - 1].DisplayCardImage();
-                        deckOfPlayingCards[warPlayers[topPlayerIndex].ComparisonCard.Group].Group[warPlayers[topPlayerIndex].ComparisonCard.Card - 1].pctrBxCard.BringToFront();
+                    }
+                    // if the top player has no cards remaining
+                    else
+                    {
+                        // set the flag that indicates that a game default has occurred
+                        gameDefault = true;
 
-                        deckOfPlayingCards[warPlayers[topPlayerIndex].ComparisonCard.Group].Group[warPlayers[topPlayerIndex].ComparisonCard.Card].SetLocation(xCoordTP, firstCardTPY);
-                        deckOfPlayingCards[warPlayers[topPlayerIndex].ComparisonCard.Group].Group[warPlayers[topPlayerIndex].ComparisonCard.Card].TurnCardUp();
-                        deckOfPlayingCards[warPlayers[topPlayerIndex].ComparisonCard.Group].Group[warPlayers[topPlayerIndex].ComparisonCard.Card].DisplayCardImage();
-                        deckOfPlayingCards[warPlayers[topPlayerIndex].ComparisonCard.Group].Group[warPlayers[topPlayerIndex].ComparisonCard.Card].pctrBxCard.BringToFront();
-
-                        // deal bottom players war cards (one down one up)
-
-                        warPlayers[bottomPlayerIndex].ComparisonCard.Card += 4;
-
-                        int xCoordBP = centeredCardX + ((10 + cardWidth) * warLevel);
-
-                        // set location of turned down card
-                        deckOfPlayingCards[warPlayers[bottomPlayerIndex].ComparisonCard.Group].Group[warPlayers[bottomPlayerIndex].ComparisonCard.Card - 1].SetLocation(xCoordBP, firstCardBPY);
-                        deckOfPlayingCards[warPlayers[bottomPlayerIndex].ComparisonCard.Group].Group[warPlayers[bottomPlayerIndex].ComparisonCard.Card - 1].TurnCardDown();
-                        deckOfPlayingCards[warPlayers[bottomPlayerIndex].ComparisonCard.Group].Group[warPlayers[bottomPlayerIndex].ComparisonCard.Card - 1].DisplayCardImage();
-                        deckOfPlayingCards[warPlayers[bottomPlayerIndex].ComparisonCard.Group].Group[warPlayers[bottomPlayerIndex].ComparisonCard.Card - 1].pctrBxCard.BringToFront();
-
-                        deckOfPlayingCards[warPlayers[bottomPlayerIndex].ComparisonCard.Group].Group[warPlayers[bottomPlayerIndex].ComparisonCard.Card].SetLocation(xCoordBP, firstCardBPY);
-                        deckOfPlayingCards[warPlayers[bottomPlayerIndex].ComparisonCard.Group].Group[warPlayers[bottomPlayerIndex].ComparisonCard.Card].TurnCardUp();
-                        deckOfPlayingCards[warPlayers[bottomPlayerIndex].ComparisonCard.Group].Group[warPlayers[bottomPlayerIndex].ComparisonCard.Card].DisplayCardImage();
-                        deckOfPlayingCards[warPlayers[bottomPlayerIndex].ComparisonCard.Group].Group[warPlayers[bottomPlayerIndex].ComparisonCard.Card].pctrBxCard.BringToFront();
+                        // handle the game default
+                        GameDefault(topPlayerIndex);
                     }
 
                 }
+                // if the top player has no cards remaining
+                else
+                {
+                    // set the flag that indicates that a game default has occurred
+                    gameDefault = true;
 
-                // disable the Deal Cards menu item
-                dealCardsToolStripMenuItem.Enabled = false;
-                compareCardsToolStripMenuItem.Enabled = true;
-                if (isGamePlaying == true)
-                    UpdateOutputLabel();
+                    // handle the game default
+                    GameDefault(topPlayerIndex);
+                }
+                                        
+
+            } // end of else if (warLevel > 0) 
+
+            // disable the Deal Cards context menu item
+            dealCardsToolStripMenuItem.Enabled = false;
+
+            // enable the Compare Cards context menu item
+            compareCardsToolStripMenuItem.Enabled = true;
+
+            // if a game is still playing,
+            if (isGamePlaying == true)
+            {
+                // update the output label
+                UpdateOutputLabel();
+                DealCommentary();
+            }
+                
+        }
+
+        private void DealCommentary()
+        {
+            int lead = 0;               // number of points that one player is ahead of the other
+
+            // check if the top player is in the lead
+            if (warPlayers[topPlayerIndex].Score > warPlayers[bottomPlayerIndex].Score)
+            {
+                // if the top player is in the lead, calculate the lead he or she has
+                lead = warPlayers[topPlayerIndex].Score - warPlayers[bottomPlayerIndex].Score;
+
+                // display commentary of the top player being in the lead and by how much
+                lblCommentary.Text = "Top Player " + warPlayers[topPlayerIndex].Name +
+                    " in the lead by " + lead + " points!";
+            }
+            // check if  the bottom player is in the lead
+            else if (warPlayers[bottomPlayerIndex].Score > warPlayers[topPlayerIndex].Score)
+            {
+                // if the bottom player is in the lead, calculate the lead he or she has
+                lead = warPlayers[bottomPlayerIndex].Score - warPlayers[topPlayerIndex].Score;
+
+                // display commentary of the bottom player being in the lead and by how much
+                lblCommentary.Text = "Bottom Player " + warPlayers[bottomPlayerIndex].Name +
+                    " in the lead by " + lead + " points!";
+
+            }
+            // check if both player's scores are equal
+            else if (warPlayers[topPlayerIndex].Score == warPlayers[bottomPlayerIndex].Score)
+            {
+                // if both scores are equal
+
+                // check if it's the first round
+                if (round == 1)
+                    // if it's the first round, display the start message
+                    lblCommentary.Text = "Let's get started, shall we?";
+                else
+                    // otherwise, display the undecided message 
+                    lblCommentary.Text = "It's anybody's game, folks!";
+            }
+
+        }
+
+        private void GameDefault(int targetPlayerIndex_NoCards)
+        {
+            // this method is called when one player runs out of cards and then the other player wins by default
+
+            // check the war level
+            if (warLevel > 0)
+            {
+                // if the war level is greater than zero, the default is a WAR default
+                if (targetPlayerIndex_NoCards == topPlayerIndex)
+                {
+                    // if the target player who has no cards is the top player, display appropriate message in the commentary label
+                    lblCommentary.Text = "Top Player " + warPlayers[topPlayerIndex].Name +
+                                " doesn't have enough cards left for the war so Bottom Player " + warPlayers[bottomPlayerIndex].Name +
+                                " wins the game by default!";
+                }
+                else if (targetPlayerIndex_NoCards == bottomPlayerIndex)
+                {
+                    // if the target player who has no cards is the bottom player, display appropriate message in the commentary label
+                    lblCommentary.Text = "Bottom Player " + warPlayers[bottomPlayerIndex].Name +
+                                    " doesn't have enough cards left for the war so Top Player " + warPlayers[topPlayerIndex].Name +
+                                    " wins the game by default!";
+                }
+
             }
             else
-                MessageBox.Show("Line 1150 - The top or bottom player has no cards to deal");
-                        
+            {
+                // if the war level is not greater than zero, then something has gone wrong so display an error message
+                MessageBox.Show("Error: Non WAR Default occurred.  Player identifier is \"" + warPlayers[targetPlayerIndex_NoCards].Identifier + "\"." 
+                    + "\nThe program must now end.");
+
+                // end the program
+                this.Close();
+            }
+
+            // call the method to end the game
+            End();
+
+        }
+
+        private void CollectWonCards(int winnerPlayerIndex, int winnerPlayerWonCardsGroupIndex, int loserPlayerIndex)
+        {
+            // get indexes to access winner player's comparison card
+            int WPCCGroupIndex = warPlayers[winnerPlayerIndex].ComparisonCard.Group;
+            int WPCCCardIndex = warPlayers[winnerPlayerIndex].ComparisonCard.Card;
+
+            // get indexes to access loser player's comparison card
+            int LPCCGroupIndex = warPlayers[loserPlayerIndex].ComparisonCard.Group;
+            int LPCCCardIndex = warPlayers[loserPlayerIndex].ComparisonCard.Card;
+
+            // declare the variables that will hold the coordinates from which to spread the winner's won cards 
+            int spreadCardsX = 0, spreadCardsY = 0;
+            
+            // check if there is not a WAR presently ongoing
+            if (warLevel == 0)
+            {
+                // if there is no WAR presently ongoing, set the commentary label text to display that the winner's comparison card beat the loser's comparison card
+                lblCommentary.Text = warPlayers[winnerPlayerIndex].Identifier + " " + warPlayers[winnerPlayerIndex].Name + "'s " + deckOfPlayingCards[WPCCGroupIndex].Group[WPCCCardIndex].FaceValue.ToString() + " of " +
+                    deckOfPlayingCards[WPCCGroupIndex].Group[WPCCCardIndex].Suit.ToString() + " beat " + warPlayers[loserPlayerIndex].Identifier + " " + warPlayers[loserPlayerIndex].Name + "'s " +
+                    deckOfPlayingCards[LPCCGroupIndex].Group[LPCCCardIndex].FaceValue.ToString() + " of " + deckOfPlayingCards[LPCCGroupIndex].Group[LPCCCardIndex].Suit.ToString() + "!";
+            }
+            // check if there is a WAR presently ongoing
+            else if (warLevel > 0)
+            {
+                // if there is a WAR presently ongoing, set the commentary label text to display that the winner won the WAR with his or her comparison card beating the loser's comparison card
+                lblCommentary.Text = warPlayers[winnerPlayerIndex].Identifier + " " + warPlayers[winnerPlayerIndex].Name + "'s " + deckOfPlayingCards[WPCCGroupIndex].Group[WPCCCardIndex].FaceValue.ToString() + " of " +
+                    deckOfPlayingCards[WPCCGroupIndex].Group[WPCCCardIndex].Suit.ToString() + " won the war by beating " + warPlayers[loserPlayerIndex].Identifier + " "  + warPlayers[loserPlayerIndex].Name + "'s " +
+                    deckOfPlayingCards[LPCCGroupIndex].Group[LPCCCardIndex].FaceValue.ToString() + " of " + deckOfPlayingCards[LPCCGroupIndex].Group[LPCCCardIndex].Suit.ToString() + "!";
+
+                // end the war (deescalate the war)
+                warLevel = 0;
+
+                // make the WAR label invisible
+                lblWAR.Visible = false;
+            }
+
+            // tranfer all dealt cards from the dealt cards group to the winner's won cards group
+            TransferFirstGroupOfCardsToSecondGroup(dealtCardsGroupIndex, winnerPlayerWonCardsGroupIndex);
+
+            // check if the winner was the top player
+            if (winnerPlayerIndex == topPlayerIndex)
+            {
+                // if the winner is the top player, then calculate the X coordinate from which to spread the top player's won cards to be far enough to the left of the top player's cards to have a little space
+                // between the two groups of cards
+                spreadCardsX = centeredCardX - (SPACING_GAP + CARD_WIDTH + SPREAD_OFFSET * (deckOfPlayingCards[winnerPlayerWonCardsGroupIndex].Group.Count - 1));
+
+                // set the Y coordinate from which to spread the top player's won cards to the same Y coordinate from where the top player's cards are dealt from
+                spreadCardsY = setUpTPY;
+            }
+            // check if the winner was the bottom player
+            else if (winnerPlayerIndex == bottomPlayerIndex)
+            {
+                // if  the  winner is the bottom player, then calculate the X coordinate from which to spread the bottom player's won cards to be just to the right of the bottom player's cards with a little space
+                // between the two groups of cards
+                spreadCardsX = centeredCardX + SPACING_GAP + CARD_WIDTH;
+
+                // set the Y coordinate from which to spread the bottom player's won cards to the same Y coordinate from where the bottom player's cards are dealt from
+                spreadCardsY = setUpBPY;
+            }
+
+            // spread the winner's won cards at the calculated coordinates 
+            SpreadGroupOfCards(spreadCardsX, spreadCardsY, winnerPlayerWonCardsGroupIndex);
+
         }
 
         private void CompareTheCards(object sender, EventArgs e)
         {
 
-            // access Top Player's card
+            // get indexes to access Top Player's comparison card
             int TPCCGroupIndex = warPlayers[topPlayerIndex].ComparisonCard.Group;
             int TPCCCardIndex = warPlayers[topPlayerIndex].ComparisonCard.Card;
 
-            //deckOfPlayingCards[TPCCGroupIndex].Group[TPCCCardIndex].FaceValue;
-
-            // access Bottom Player's card
+            // get indexes to access Bottom Player's comparison card
             int BPCCGroupIndex = warPlayers[bottomPlayerIndex].ComparisonCard.Group;
             int BPCCCardIndex = warPlayers[bottomPlayerIndex].ComparisonCard.Card;
 
+            // check if top player's card beats bottom player's card
             if (deckOfPlayingCards[TPCCGroupIndex].Group[TPCCCardIndex].FaceValue > deckOfPlayingCards[BPCCGroupIndex].Group[BPCCCardIndex].FaceValue)
             {
-                // Top Player wins both cards
-
-                lblCommentary.Text = "Top Player " + warPlayers[topPlayerIndex].Name + "'s " + deckOfPlayingCards[TPCCGroupIndex].Group[TPCCCardIndex].FaceValue.ToString() + " of " +
-                    deckOfPlayingCards[TPCCGroupIndex].Group[TPCCCardIndex].Suit.ToString() + " beat Bottom Player " + warPlayers[bottomPlayerIndex].Name + "'s " +
-                    deckOfPlayingCards[BPCCGroupIndex].Group[BPCCCardIndex].FaceValue.ToString() + " of " +
-                    deckOfPlayingCards[BPCCGroupIndex].Group[BPCCCardIndex].Suit.ToString();
-
-                // move both cards from dealt cards group to Top Player Won Cards group
-                TransferFirstGroupOfCardsToSecondGroup(dealtCardsGroupIndex, topPlayerWonCardsGroupIndex);
-
-                // spread the won cards next to Top Player's cards
-                SpreadGroupOfCards(centeredCardX - (10 + cardWidth + 25 * (deckOfPlayingCards[topPlayerWonCardsGroupIndex].Group.Count - 1)), setUpTPY, topPlayerWonCardsGroupIndex);
-
-                if (warLevel > 0)
-                {
-                    warLevel = 0;
-                    lblWAR.Visible = false;
-                    lblWAR.Enabled = false;
-                }
-
-
+                // if the top player did win, collect all the dealt cards that the top player just won into the top player's won cards group
+                CollectWonCards(topPlayerIndex, topPlayerWonCardsGroupIndex, bottomPlayerIndex);
+                
             }
+            // check if bottom player's card beats top player's card
             else if (deckOfPlayingCards[TPCCGroupIndex].Group[TPCCCardIndex].FaceValue < deckOfPlayingCards[BPCCGroupIndex].Group[BPCCCardIndex].FaceValue)
             {
-                // Bottom Player wins both cards
-
-                lblCommentary.Text = "Bottom Player " + warPlayers[bottomPlayerIndex].Name + "'s " + deckOfPlayingCards[BPCCGroupIndex].Group[BPCCCardIndex].FaceValue.ToString() + " of " +
-                    deckOfPlayingCards[BPCCGroupIndex].Group[BPCCCardIndex].Suit.ToString() + " beat Top Player " + warPlayers[topPlayerIndex].Name + "'s " +
-                    deckOfPlayingCards[TPCCGroupIndex].Group[TPCCCardIndex].FaceValue.ToString() + " of " +
-                    deckOfPlayingCards[TPCCGroupIndex].Group[TPCCCardIndex].Suit.ToString();
-
-                // move both cards from dealt cards group to Bottom Player Won Cards group
-                TransferFirstGroupOfCardsToSecondGroup(dealtCardsGroupIndex, bottomPlayerWonCardsGroupIndex);
-
-                // spread the won cards next to Bottom Player's won cards
-                SpreadGroupOfCards(centeredCardX + (10 + cardWidth), setUpBPY, bottomPlayerWonCardsGroupIndex);
-
-                if (warLevel > 0)
-                {
-                    warLevel = 0;
-                    lblWAR.Visible = false;
-                    lblWAR.Enabled = false;
-                }
+                // if the bottom player did win, collect all the dealt cards that the bottom player just won into the bottom player's won cards group
+                CollectWonCards(bottomPlayerIndex, bottomPlayerWonCardsGroupIndex, topPlayerIndex);
+                                                
             }
+            // check if both cards are of equal face value
             else if (deckOfPlayingCards[TPCCGroupIndex].Group[TPCCCardIndex].FaceValue == deckOfPlayingCards[BPCCGroupIndex].Group[BPCCCardIndex].FaceValue)
             {
-                // WAR!!!
-                lblWAR.Enabled = true;
-                lblWAR.Visible = true;
-                lblWAR.BringToFront();
+                // If the cards are equal, then there's a WAR!!!
 
+                // check if there isn't a WAR presently ongoing
                 if (warLevel == 0)
                 {
+                    // if there is no WAR presently ongoing, start a WAR
+                    // set the warlevel to one
                     warLevel = 1;
+
+                    // display in the WAR label an announcement that there's a WAR now
+                    lblWAR.Text = "WAR!!!";
+
+                    // center the WAR label on the application form
+                    CenterWARLabel();
+
+                    // display commentary announcing that the WAR level is now one
                     lblCommentary.Text = "WAR level: 1!";
                 }
+                // check if there is a WAR presently ongoing
                 else if (warLevel > 0)
                 {
-                    // compare cards
-                    if (deckOfPlayingCards[TPCCGroupIndex].Group[TPCCCardIndex].FaceValue > deckOfPlayingCards[BPCCGroupIndex].Group[BPCCCardIndex].FaceValue)
-                    {
-                        // Top Player wins both cards
+                    // raise the WAR level by one (escalate the WAR)
+                    warLevel++;
 
-                        lblCommentary.Text = "Top Player " + warPlayers[topPlayerIndex].Name + "'s " + deckOfPlayingCards[TPCCGroupIndex].Group[TPCCCardIndex].FaceValue.ToString() + " of " +
-                            deckOfPlayingCards[TPCCGroupIndex].Group[TPCCCardIndex].Suit.ToString() + " beat Bottom Player " + warPlayers[bottomPlayerIndex].Name + "'s " +
-                            deckOfPlayingCards[BPCCGroupIndex].Group[BPCCCardIndex].FaceValue.ToString() + " of " +
-                            deckOfPlayingCards[BPCCGroupIndex].Group[BPCCCardIndex].Suit.ToString();
+                    // display in the WAR label an announcement that there's another WAR now
+                    lblWAR.Text = "WAR AGAIN!!!";
 
-                        // move both cards from dealt cards group to Top Player Won Cards group
-                        TransferFirstGroupOfCardsToSecondGroup(dealtCardsGroupIndex, topPlayerWonCardsGroupIndex);
+                    // center the WAR label on the application form
+                    CenterWARLabel();
 
-                        // spread the won cards next to Top Player's cards
-                        SpreadGroupOfCards(centeredCardX - (10 + cardWidth + 25 * (deckOfPlayingCards[topPlayerWonCardsGroupIndex].Group.Count - 1)), setUpTPY, topPlayerWonCardsGroupIndex);
-
-                        if (warLevel > 0)
-                        {
-                            warLevel = 0;
-                            lblWAR.Visible = false;
-                            lblWAR.Enabled = false;
-                        }
-
-                    }
-                    else if (deckOfPlayingCards[TPCCGroupIndex].Group[TPCCCardIndex].FaceValue < deckOfPlayingCards[BPCCGroupIndex].Group[BPCCCardIndex].FaceValue)
-                    {
-                        // Bottom Player wins both cards
-
-                        lblCommentary.Text = "Bottom Player " + warPlayers[bottomPlayerIndex].Name + "'s " + deckOfPlayingCards[BPCCGroupIndex].Group[BPCCCardIndex].FaceValue.ToString() + " of " +
-                            deckOfPlayingCards[BPCCGroupIndex].Group[BPCCCardIndex].Suit.ToString() + " beat Top Player " + warPlayers[topPlayerIndex].Name + "'s " +
-                            deckOfPlayingCards[TPCCGroupIndex].Group[TPCCCardIndex].FaceValue.ToString() + " of " +
-                            deckOfPlayingCards[TPCCGroupIndex].Group[TPCCCardIndex].Suit.ToString();
-
-                        // move both cards from dealt cards group to Bottom Player Won Cards group
-                        TransferFirstGroupOfCardsToSecondGroup(dealtCardsGroupIndex, bottomPlayerWonCardsGroupIndex);
-
-                        // spread the won cards next to Bottom Player's won cards
-                        SpreadGroupOfCards(centeredCardX + (10 + cardWidth), setUpBPY, bottomPlayerWonCardsGroupIndex);
-
-                        if (warLevel > 0)
-                        {
-                            warLevel = 0;
-                            lblWAR.Visible = false;
-                            lblWAR.Enabled = false;
-                        }
-
-                    }
-                    else if (deckOfPlayingCards[TPCCGroupIndex].Group[TPCCCardIndex].FaceValue == deckOfPlayingCards[BPCCGroupIndex].Group[BPCCCardIndex].FaceValue)
-                    {
-                        lblWAR.Enabled = true;
-                        lblWAR.Visible = true;
-                        lblWAR.BringToFront();
-
-                        warLevel++;
-                        lblCommentary.Text = "WAR level: " + warLevel;
-                    }
+                    // display commentary announcing the new WAR level
+                    lblCommentary.Text = "WAR level: " + warLevel;
+                    
                 }
-            }
 
-            // adjust and display scores
-            warPlayers[topPlayerIndex].Score = deckOfPlayingCards[topPlayerWonCardsGroupIndex].Group.Count + deckOfPlayingCards[topPlayerGroupIndex].Group.Count;
-            warPlayers[bottomPlayerIndex].Score = deckOfPlayingCards[bottomPlayerWonCardsGroupIndex].Group.Count + deckOfPlayingCards[bottomPlayerGroupIndex].Group.Count;
-            lblTopPlayer.Text = warPlayers[topPlayerIndex].Identifier + ": " + warPlayers[topPlayerIndex].Name + "\nScore: " + warPlayers[topPlayerIndex].Score;
-            lblBottomPlayer.Text = warPlayers[bottomPlayerIndex].Identifier + ": " + warPlayers[bottomPlayerIndex].Name + "\nScore: " + warPlayers[bottomPlayerIndex].Score;
+                // make the WAR label visible
+                lblWAR.Visible = true;
 
-            
-            // check if someone has won the game
-            if (warPlayers[topPlayerIndex].Score == cardsInDeck)
-            {
-                EndGame(warPlayers[topPlayerIndex].Name, "Top");
-                                
-            }
-            else if (warPlayers[bottomPlayerIndex].Score == cardsInDeck)
-            {
-                EndGame(warPlayers[bottomPlayerIndex].Name, "Bottom");
+                // bring the WAR label to the front so it can be seen over the cards
+                lblWAR.BringToFront();
                                 
             }
 
-            if (isGamePlaying)
+            // check if there is no WAR presently ongoing
+            if (warLevel == 0)
             {
-                //int topPlayerGroupIndex = returnGroupIndexGivenIdentifier("Top Player cards");
-                //int bottomPlayerGroupIndex = returnGroupIndexGivenIdentifier("Bottom Player cards");
+                // if there is  no WAR presently ongoing
+                // set the player's scores equal to the count of the cards in their respective player cards groups and won cards groups combined
+                warPlayers[topPlayerIndex].Score = deckOfPlayingCards[topPlayerWonCardsGroupIndex].Group.Count + deckOfPlayingCards[topPlayerGroupIndex].Group.Count;
+                warPlayers[bottomPlayerIndex].Score = deckOfPlayingCards[bottomPlayerWonCardsGroupIndex].Group.Count + deckOfPlayingCards[bottomPlayerGroupIndex].Group.Count;
+
+                // display both player's identifier, name and score
+                lblTopPlayer.Text = warPlayers[topPlayerIndex].Identifier + ": " + warPlayers[topPlayerIndex].Name + "\nScore: " + warPlayers[topPlayerIndex].Score;
+                lblBottomPlayer.Text = warPlayers[bottomPlayerIndex].Identifier + ": " + warPlayers[bottomPlayerIndex].Name + "\nScore: " + warPlayers[bottomPlayerIndex].Score;
 
 
-                if (deckOfPlayingCards[topPlayerGroupIndex].getCount() == 0 && deckOfPlayingCards[topPlayerWonCardsGroupIndex].getCount() > 0)
+                // check if someone has won the game
+
+                // check if the top player won
+                if (warPlayers[topPlayerIndex].Score == CARDS_IN_DECK)
                 {
-                    TransferFirstGroupOfCardsToSecondGroup(topPlayerWonCardsGroupIndex, topPlayerGroupIndex);
-                    ShuffleGroupOfCards(topPlayerGroupIndex);
-                    ShuffleGroupOfCards(topPlayerGroupIndex);
-                    ShuffleGroupOfCards(topPlayerGroupIndex);
-                    GatherGroupOfCards(centeredCardX, setUpTPY, topPlayerGroupIndex);
+                    // if the top player won, end the game with the top player as winner
+                    EndGame(topPlayerIndex);
 
                 }
-                else if (deckOfPlayingCards[topPlayerGroupIndex].getCount() == 0 && deckOfPlayingCards[topPlayerWonCardsGroupIndex].getCount() == 0)
+                // check if the bottom player won
+                else if (warPlayers[bottomPlayerIndex].Score == CARDS_IN_DECK)
                 {
-                    //MessageBox.Show("FROM COMPARE CARDS METHOD: Top Player has no cards to deal");
-                    if (warLevel > 0)
-                    {
-                        lblCommentary.Text = "Top Player " + warPlayers[topPlayerIndex].Name +
-                            " doesn't have enough cards left for the war so Bottom Player " + warPlayers[bottomPlayerIndex].Name +
-                            " wins the game by default!";
-
-                        End();
-
-                        //lblCommentary.Text = "Bottom Player " + warPlayers[bottomPlayerIndex].Name + " has won the game by WAR Default!";
-                        //isGamePlaying = false;
-                        lblWAR.Visible = false;
-                        lblWAR.Enabled = false;
-                    }
-                }
-
-                if (deckOfPlayingCards[bottomPlayerGroupIndex].getCount() == 0 && deckOfPlayingCards[bottomPlayerWonCardsGroupIndex].getCount() > 0)
-                {
-                    TransferFirstGroupOfCardsToSecondGroup(bottomPlayerWonCardsGroupIndex, bottomPlayerGroupIndex);
-                    ShuffleGroupOfCards(bottomPlayerGroupIndex);
-                    ShuffleGroupOfCards(bottomPlayerGroupIndex);
-                    ShuffleGroupOfCards(bottomPlayerGroupIndex);
-                    GatherGroupOfCards(centeredCardX, setUpBPY, bottomPlayerGroupIndex);
+                    // if the botom player won, end the game with the bottom player as winner
+                    EndGame(bottomPlayerIndex);
 
                 }
-                else if (deckOfPlayingCards[bottomPlayerGroupIndex].getCount() == 0 && deckOfPlayingCards[bottomPlayerWonCardsGroupIndex].getCount() == 0)
+            }
+
+            // check if a game is still playing
+            if (isGamePlaying == true)
+            {
+                // if a game is still playing
+
+                // check if top player has no cards in his or her player cards group but does have cards in his or her won cards group
+                if (deckOfPlayingCards[topPlayerGroupIndex].GetCount() == 0 && deckOfPlayingCards[topPlayerWonCardsGroupIndex].GetCount() > 0)
                 {
-                    //MessageBox.Show("FROM COMPARE CARDS METHOD: Bottom Player has no cards to deal");
-                    if (warLevel > 0)
-                    {
-                        lblCommentary.Text = "Bottom Player " + warPlayers[bottomPlayerIndex].Name +
-                            " doesn't have enough cards left for the war so Top Player " + warPlayers[topPlayerIndex].Name +
-                            " wins the game by default!";
+                    // if the top player doesn't have cards in his or her player cards group but does have cards in his or her won cards group,
+                    // transfer the cards in the won cards group to the player cards group and gather them where the top player deals from  
+                    RegatherPlayerCards(topPlayerGroupIndex, topPlayerWonCardsGroupIndex, centeredCardX, setUpTPY);
 
-                        End();
+                }
+                // check if top player has no cards in his or her player cards group and has no cards in his or her won cards group
+                else if (deckOfPlayingCards[topPlayerGroupIndex].GetCount() == 0 && deckOfPlayingCards[topPlayerWonCardsGroupIndex].GetCount() == 0)
+                {
+                    
+                    // if the top player has no cards, then he or she loses the game by default
 
-                        //lblCommentary.Text = "Top Player " + warPlayers[topPlayerIndex].Name + " has won the game by WAR Default!";
-                        //isGamePlaying = false;
-                        lblWAR.Visible = false;
-                        lblWAR.Enabled = false;
-                    }
+                    // set the game default flag to indicate there is a game default    
+                    gameDefault = true;
+
+                    // call the method to handle the game default with the top player as loser
+                    GameDefault(topPlayerIndex);
+                        
+                    // make the WAR label invisible
+                    lblWAR.Visible = false;
+                        
                 }
 
+                // check if bottom player has no cards in his or her player cards group but does have cards in his or her won cards group
+                if (deckOfPlayingCards[bottomPlayerGroupIndex].GetCount() == 0 && deckOfPlayingCards[bottomPlayerWonCardsGroupIndex].GetCount() > 0)
+                {
+                    // if the bottom player doesn't have cards in his or her player cards group but does have cards in his or her won cards group,
+                    // transfer the cards in the won cards group to the player cards group and gather them where the bottom player deals from
+                    RegatherPlayerCards(bottomPlayerGroupIndex, bottomPlayerWonCardsGroupIndex, centeredCardX, setUpBPY);
+                                        
+                }
+                // check if bottom player has no cards in his or her player cards group and has no cards in his or her won cards group
+                else if (deckOfPlayingCards[bottomPlayerGroupIndex].GetCount() == 0 && deckOfPlayingCards[bottomPlayerWonCardsGroupIndex].GetCount() == 0)
+                {
+                    
+                    // if the bottom player has no cards, then he or she loses the game by default
+
+                    // set the game default flag to indicate there is a game default
+                    gameDefault = true;
+
+                    // call the method to handle the game default with the bottom player as loser
+                    GameDefault(bottomPlayerIndex);
+                        
+                    // make the WAR label invisible
+                    lblWAR.Visible = false;
+                        
+                }
+
+                // enable the Deal Cards context menu item
                 dealCardsToolStripMenuItem.Enabled = true;
+
+                // disable the Compare Cards context menu item
                 compareCardsToolStripMenuItem.Enabled = false;
+
+                // check if a  game is still playing
                 if (isGamePlaying == true)
                 {
+                    // if a game is still playing
+
+                    // update the output label
                     UpdateOutputLabel();
+
+                    // increment the round
                     round++;
+
+                    // display the round in the Round label
                     lblRound.Text = "Round\n" + round;
                 }
-                //else
-                    //MessageBox.Show("Wait a minute...");
+                
             }
-                        
+
         }
 
-        private void EndGame(string winnerName, string winnerTopOrBottom)
+        private void RegatherPlayerCards(int playerGroupIndex, int playerWonCardsGroupIndex, int playerXCoord, int playerYCoord)
         {
-            lblCommentary.Text = winnerTopOrBottom + " Player " + winnerName + " has won the game!";
+            // tranfer the target player's won cards to the target player's cards group
+            TransferFirstGroupOfCardsToSecondGroup(playerWonCardsGroupIndex, playerGroupIndex);
 
+            // shuffle the target player's cards three times
+            ShuffleGroupOfCards(playerGroupIndex);
+            ShuffleGroupOfCards(playerGroupIndex);
+            ShuffleGroupOfCards(playerGroupIndex);
+
+            // gather the target player's cards at the target coordinates (the coordinates passed to this method as arguments)
+            GatherGroupOfCards(playerXCoord, playerYCoord, playerGroupIndex);
+        }
+
+        private void CenterWARLabel()
+        {
+            // get the size of the application form
+            Size formSize = this.Size;
+
+            // get the size of the WAR label
+            Size WARLabelSize = lblWAR.Size;
+
+            // get the WAR label's location
+            Point WARLabelLocation = lblWAR.Location;
+
+            // calculate the X coordinate that will center the WAR label horizontally on the application form
+            int wlCenteredX = (formSize.Width - WARLabelSize.Width) / 2;
+
+            // set the WARLabelLocation's X coordinate to the value that will center the WAR Label
+            WARLabelLocation.X = wlCenteredX;
+
+            // set the WAR label Location property to the location that will center the WAR label
+            lblWAR.Location = WARLabelLocation;
+            
+        }
+
+        private void EndGame(int winnerPlayerIndex)
+        {
+            // set the commentary text to display a message telling who won the game
+            lblCommentary.Text = warPlayers[winnerPlayerIndex].Identifier + " " + warPlayers[winnerPlayerIndex].Name + " has won the game!";
+
+            // perform tasks to end the game and prepare for resetting to play another game
             End();
 
         }
 
         private void End()
         {
+            // set the game end time to the current time
             gameEndTime = DateTime.Now;
 
+            // display the game end time in the Game Stop Time label
             lblGameStopTime.Text = "Game End Time: " + gameEndTime.ToString("hh:mm:ss tt");
+
+            // make the Game Stop Time label visible
             lblGameStopTime.Visible = true;
 
+            // calculate how long the game was
             gameElapsedTime = gameEndTime - gameStartTime;
 
+            // display how long the game was
             DisplayGameDuration();
 
+            // reset the the flag that indicates whether or not a game is playing
             isGamePlaying = false;
 
-            // set up for reset
+            // set up for resetting to play another game
+
+            // make the Start WAR Card Game context menu item invisible
             startWARCardGameToolStripMenuItem.Visible = false;
+
+            // disable the Start WAR Card Game context menu item
             startWARCardGameToolStripMenuItem.Enabled = false;
+
+            // make the AutoPlay Game context menu item invisible
             autoPlayGameToolStripMenuItem.Visible = false;
+
+            // disable the AutoPlay Game context menu item
             autoPlayGameToolStripMenuItem.Enabled = false;
 
+            // enable the Reset Game context menu item
             resetGameToolStripMenuItem.Enabled = true;
+
+            // make the Reset Game context menu item visible
             resetGameToolStripMenuItem.Visible = true;
 
+            // display instructions to reset the game in the Output label
             lblOutput.Text = "Instructions: To play again, right click and select the \"Reset Game\" option!";
 
+            // set the flag indicating that the game is waiting to be reset
             awaitingReset = true;
+
+            // set the dealt card count for the multiple autoplay game display in the test form
+            dealtCardCount = deckOfPlayingCards[dealtCardsGroupIndex].GetCount();
         }
 
         private void ResetGame(object sender, EventArgs e)
         {
+            // check to see if the game is waiting to be reset
             if (awaitingReset == true)
             {
+                // if the game is waiting to be reset
+
+                // change the text of the Start WAR Card Game context menu item to "Start WAR Card Game"
                 startWARCardGameToolStripMenuItem.Text = "Start WAR Card Game";
 
+                // disable the Deal Cards context menu item
                 dealCardsToolStripMenuItem.Enabled = false;
+
+                // make the Deal Cards context menu item invisible
                 dealCardsToolStripMenuItem.Visible = false;
+
+                // disable the Compare Cards context menu item
                 compareCardsToolStripMenuItem.Enabled = false;
+
+                // make the Compare Cards context menu item invisible
                 compareCardsToolStripMenuItem.Visible = false;
 
-                // transfer to the deck 
+                // transfer cards in the following groups back to the deck group 
                 // top player's cards
-                if (deckOfPlayingCards[topPlayerGroupIndex].getCount() > 0)
+                if (deckOfPlayingCards[topPlayerGroupIndex].GetCount() > 0)
                     TransferFirstGroupOfCardsToSecondGroup(topPlayerGroupIndex, deckGroupIndex);
 
                 // top player's won cards
-                if (deckOfPlayingCards[topPlayerWonCardsGroupIndex].getCount() > 0)
+                if (deckOfPlayingCards[topPlayerWonCardsGroupIndex].GetCount() > 0)
                     TransferFirstGroupOfCardsToSecondGroup(topPlayerWonCardsGroupIndex, deckGroupIndex);
 
                 // bottom player's cards
-                if (deckOfPlayingCards[bottomPlayerGroupIndex].getCount() > 0)
+                if (deckOfPlayingCards[bottomPlayerGroupIndex].GetCount() > 0)
                     TransferFirstGroupOfCardsToSecondGroup(bottomPlayerGroupIndex, deckGroupIndex);
 
                 // bottom player's won cards
-                if (deckOfPlayingCards[bottomPlayerWonCardsGroupIndex].getCount() > 0)
+                if (deckOfPlayingCards[bottomPlayerWonCardsGroupIndex].GetCount() > 0)
                     TransferFirstGroupOfCardsToSecondGroup(bottomPlayerWonCardsGroupIndex, deckGroupIndex);
 
                 // check dealt cards just in case
-                if (deckOfPlayingCards[dealtCardsGroupIndex].getCount() > 0)
+                if (deckOfPlayingCards[dealtCardsGroupIndex].GetCount() > 0)
                     TransferFirstGroupOfCardsToSecondGroup(dealtCardsGroupIndex, deckGroupIndex);
 
+                // reset the flag that indicates whether or not the deck is split
                 isDeckSplit = false;
 
+                // recenter the deck of cards
                 GatherGroupOfCards(centeredCardX, centeredCardY, deckGroupIndex);
 
+                // make the Start WAR Card Game context menu item visible
                 startWARCardGameToolStripMenuItem.Visible = true;
+
+                // enable the Start WAR Card Game context menu item
                 startWARCardGameToolStripMenuItem.Enabled = true;
+
+                // make the AutoPlay Game context menu item visible
                 autoPlayGameToolStripMenuItem.Visible = true;
+
+                // enable the AutoPlay Game context menu item
                 autoPlayGameToolStripMenuItem.Enabled = true;
 
+                // disable the Reset Game context menu item
                 resetGameToolStripMenuItem.Enabled = false;
+
+                // make the Reset Game context menu item invisible
                 resetGameToolStripMenuItem.Visible = false;
 
-                UpdateOutputLabel();
-
-                // reset the commentary label
+                // reset the Commentary label
                 lblCommentary.Text = warPlayers[topPlayerIndex].Name + " and " + warPlayers[bottomPlayerIndex].Name +
                     " are you ready to play again?";
 
+                // make the top player identifier, name and score label invisible
                 lblTopPlayer.Visible = false;
+
+                // make the bottom player identifier, name and score label invisible
                 lblBottomPlayer.Visible = false;
+
+                // make the Game Start Time label invisible
                 lblGameStartTime.Visible = false;
+
+                // make the Game Stop Time label invisible
                 lblGameStopTime.Visible = false;
+
+                // reset the the game duration to zero
+                gameElapsedTime = TimeSpan.Zero;
+
+                // make the Game Duration label invisible
                 lblGameDuration.Visible = false;
 
+                // reset the round variable to the first round
                 round = 1;
+
+                // make the Round label invisible
                 lblRound.Visible = false;
 
+                // reset the flag that indicates whether or not the game is waiting to be reset
                 awaitingReset = false;
+
+                // update the Output label
+                UpdateOutputLabel();
             }
-            else 
+            // if the game is not waiting to be reset
+            else
             {
+                // display error message
                 MessageBox.Show("Attempting to reset game when game is not awaiting reset");
             }
         }
 
         private void TimerTick(object sender, EventArgs e)
         {
-            
+
             lblCurrentTime.Text = "Current Time: " + DateTime.Now.ToString("hh:mm:ss tt");
 
             if (isGamePlaying == true)
@@ -1641,16 +2296,28 @@ namespace WAR_Card_Game
 
         private void DisplayGameDuration()
         {
+            // if the game lasted for days
             if (gameElapsedTime.Days > 0)
-                lblGameDuration.Text = "Game Duration: " + gameElapsedTime.Days + " days " + gameElapsedTime.Hours + " hr, " + 
+                // display days, hours, minutes and seconds
+                lblGameDuration.Text = "Game Duration: " + gameElapsedTime.Days + " days " + gameElapsedTime.Hours + " hr, " +
                     gameElapsedTime.Minutes + " min, " + gameElapsedTime.Seconds + " sec";
+            // if the game lasted for hours
             else if (gameElapsedTime.Hours > 0)
+                // display hours, minutes and seconds
                 lblGameDuration.Text = "Game Duration: " + gameElapsedTime.Hours + " hr, " + gameElapsedTime.Minutes + " min, "
                     + gameElapsedTime.Seconds + " sec";
+            // if  the game lasted for minutes
             else if (gameElapsedTime.Minutes > 0)
+                // display minutes and seconds
                 lblGameDuration.Text = "Game Duration: " + gameElapsedTime.Minutes + " min, " + gameElapsedTime.Seconds + " sec";
+            // if the game lasted for seconds
             else if (gameElapsedTime.Seconds > 0)
+                // display seconds
                 lblGameDuration.Text = "Game Duration: " + gameElapsedTime.Seconds + " sec";
+            // if the game lasted for less than one second
+            else if (gameElapsedTime > TimeSpan.Zero)
+                // display less than one second
+                lblGameDuration.Text = "Game Duration: < 1 sec";
         }
 
         /*
@@ -1677,12 +2344,12 @@ namespace WAR_Card_Game
             {
                 keyString += keyCode.ToString();
                 //lblOutput.Text = "Key was pressed with keyCode = " + keyCode.ToString() +
-                  //  "\n keyString = " + keyString;
+                //  "\n keyString = " + keyString;
             }
 
             if (keyString.Length == 4 && keyString.ToLower() == "jhle")
             {
-                MessageBox.Show("Code \"" + keyString  + "\" accepted");
+                MessageBox.Show("Code \"" + keyString + "\" accepted");
                 keyString = "";
 
                 if (isGamePlaying == false)

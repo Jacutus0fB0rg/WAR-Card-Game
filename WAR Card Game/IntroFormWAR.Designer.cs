@@ -1,7 +1,7 @@
 ﻿
 namespace WAR_Card_Game
 {
-    partial class InfoFormWAR
+    partial class IntroFormWAR
     {
         /// <summary>
         /// Required designer variable.
@@ -125,8 +125,8 @@ namespace WAR_Card_Game
             this.MinimizeBox = false;
             this.Name = "InfoFormWAR";
             this.Text = "Intro Form";
-            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.InfoFormClosing);
-            this.Load += new System.EventHandler(this.InfoFormWAR_Load);
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.IntroFormClosing);
+            this.Load += new System.EventHandler(this.IntroFormWAR_Load);
             this.ResumeLayout(false);
             this.PerformLayout();
 

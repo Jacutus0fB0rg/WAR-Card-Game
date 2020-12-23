@@ -213,17 +213,17 @@ namespace WAR_Card_Game
 
         #endregion
         private System.Windows.Forms.Label lblNumberOfGameRuns;
-        private System.Windows.Forms.Button btnEngage;
         private System.Windows.Forms.Label label1;
         public System.Windows.Forms.TextBox txtBxNumberOfGameRuns;
         public System.Windows.Forms.Label lblCurrentGameRunning;
         public System.Windows.Forms.ListBox lstBxGamesInfoDisplay;
-        private System.Windows.Forms.Button btnClear;
         public System.Windows.Forms.Label lblMinDuration;
         public System.Windows.Forms.Label lblMaxDuration;
         public System.Windows.Forms.Label lblMinRounds;
         public System.Windows.Forms.Label lblMaxRounds;
         public System.Windows.Forms.Label lblMinRoundsGameNumber;
         public System.Windows.Forms.Label lblMaxRoundsGameNumber;
+        public System.Windows.Forms.Button btnEngage;
+        public System.Windows.Forms.Button btnClear;
     }
 }

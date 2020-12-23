@@ -56,12 +56,12 @@ namespace WAR_Card_Game
             set { _location = value; }
         }
 
-        public void addCardToGroup(PlayingCard targetCard)
+        public void AddCardToGroup(PlayingCard targetCard)
         {
             _group.Add(targetCard);
         }
 
-        public void removeCardFromGroup(int index)
+        public void RemoveCardFromGroup(int index)
         {
             // determine if the index value is within the range of the group list
             // check to see if group count is greater than the index value
@@ -74,7 +74,7 @@ namespace WAR_Card_Game
                     "Card Group Access Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
 
-        public void insertCardToGroup(PlayingCard targetCard, int index)
+        public void InsertCardToGroup(PlayingCard targetCard, int index)
         {
             // determine if the index value is within the range of the group list
             // check to see if group count is greater than the index value
@@ -87,7 +87,7 @@ namespace WAR_Card_Game
                     "Card Group Access Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
 
-        public PlayingCard getCard(int index)
+        public PlayingCard GetCard(int index)
         {
             // determine if the index value is within the range of the group list
             // check to see if group count is greater than the index value
@@ -104,7 +104,7 @@ namespace WAR_Card_Game
 
         }
 
-        public void setCard(PlayingCard targetCard, int index)
+        public void SetCard(PlayingCard targetCard, int index)
         {
             // determine if the index value is within the range of the group list
             // check to see if group count is greater than the index value
@@ -117,7 +117,7 @@ namespace WAR_Card_Game
                     "Card Group Access Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
 
-        public int getCount()
+        public int GetCount()
         {
             return _group.Count;
         }
