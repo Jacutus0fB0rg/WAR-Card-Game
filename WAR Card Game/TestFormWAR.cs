@@ -18,11 +18,15 @@ namespace WAR_Card_Game
         {
             InitializeComponent();
             this.mainForm = mainForm1;
+            
         }
 
-        private void btnEngage_Click(object sender, EventArgs e)
+        async private void btnEngage_Click(object sender, EventArgs e)
         {
-            lstBxGamesInfoDisplay.Items.Clear();
+            // check to see if there are not multiple autoplay games running
+            if (mainForm.currentGame == 0)
+                // if multiple autoplay games are not running, then clear the testform
+                ClearTestForm();
 
             // disable the engage and clear buttons
             btnEngage.Enabled = false;
@@ -30,11 +34,14 @@ namespace WAR_Card_Game
 
             try
             {
-                mainForm.AutoPlayMultipleGames(sender, e);
+                // call the mainform method to start autoplaying multiple games
+                await mainForm.AutoPlayMultipleGames(sender, e);
                 
             }
+            // if an exception occurs
             catch (Exception ex)
             {
+                // display its error message
                 MessageBox.Show(ex.Message);
             }
 
@@ -43,9 +50,32 @@ namespace WAR_Card_Game
 
         private void btnClear_Click(object sender, EventArgs e)
         {
-            lstBxGamesInfoDisplay.Items.Clear();
+            // clear the testform
+            ClearTestForm();
+            // clear the number of game runs textbox
             txtBxNumberOfGameRuns.Clear();
+        }
+
+        private void ClearTestForm()
+        {
+            // clear the games info display listbox
+            lstBxGamesInfoDisplay.Items.Clear();
+
+            // clear the label that displays the number of the game that had the minimum number of rounds
+            lblMinRoundsGameNumber.Text = "#:";
+            // clear the label that displays the number of the game that had the maximum number of rounds
+            lblMaxRoundsGameNumber.Text = "#:";
+            // clear the label that displays the minimum number of rounds
+            lblMinRounds.Text = "Min:";
+            // clear the label that displays the maximum number of rounds
+            lblMaxRounds.Text = "Max:";
+            // clear the label that displays the duration of the game that had the minimum number of rounds
+            lblMinRGDuration.Text = "Min Rounds Game:";
+            // clear the label that displays the duration of the game that had the maximum number of rounds
+            lblMaxRGDuration.Text = "Max Rounds Game:";
+            // clear the label that displays the number of the currently running game
             lblCurrentGameRunning.Text = "Current game running: ";
         }
+                
     }
 }

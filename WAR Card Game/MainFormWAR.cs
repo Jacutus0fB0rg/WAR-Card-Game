@@ -92,7 +92,14 @@ namespace WAR_Card_Game
 
         int warThreshold = 100;
 
-        int drawMaxRounds = 10000;                              // the number of rounds at which an autoplaying game will be declared a draw
+        int drawMaxRounds = 10000;                              // the number of rounds at which a game will be declared a draw
+
+        bool isMultiAutoPlaying = false;
+        public int currentGame = 0;
+
+        int minRounds, minIndex = 0, maxRounds, maxIndex = 0;
+        List<int> roundList = new List<int>();
+        List<string> durationList = new List<string>();
 
         public MainFormWAR()
         {
@@ -1184,162 +1191,329 @@ namespace WAR_Card_Game
             }
         }
 
-        async public void AutoPlayMultipleGames(object sender, EventArgs e)
-        //public void AutoPlayMultipleGames(object sender, EventArgs e)
+        async public Task AutoPlayMultipleGames(object sender, EventArgs e)
         {
-            // get the number of games to autoplay from the test form;
-            int numberOfGames, minRounds, minIndex = 0, maxRounds, maxIndex = 0, milliseconds;
-            List<int> roundList = new List<int>();
-            List<string> durationList = new List<string>();
-
-            if (int.TryParse(testForm.txtBxNumberOfGameRuns.Text, out numberOfGames))
+            
+            int numberOfGames,                          // number of games to be autoplayed
+                game;                                   // number of the current game being autoplayed
+                   
+            // check to see if autoplaying multiple games is not already ongoing
+            if (isMultiAutoPlaying == false)
             {
-                if (numberOfGames > 0)
+                // if autoplaying multiple games is not already ongoing, set the flag indicating that autoplaying multiple games
+                // is now ongoing
+                isMultiAutoPlaying = true;
+
+                // get the number of games to autoplay from the test form;
+                if (int.TryParse(testForm.txtBxNumberOfGameRuns.Text, out numberOfGames))
                 {
+                    // if numberOfGames is valid
 
-                    for (int game = 1; game <= numberOfGames; game++)
+                    // check to see if number of games is greater than zero
+                    if (numberOfGames > 0)
                     {
-                        testForm.lblCurrentGameRunning.Text = "Current game running: " + game;
-                        //MessageBox.Show("Trying to autoplay game " + game);
-                        int i;
-                        if (isGamePlaying == false)
+                        // check to see that autoplaying multiple games is not picking up from where it was stopped
+                        if (currentGame == 0)
                         {
-                            // if game hasn't started yet
-                            i = 1;
-
-                            PlayWAR(sender, e);
-
-                            while (i <= 10000 && isGamePlaying == true)
-                            {
-                                DealTheCards(sender, e);
-                                milliseconds = 1;
-                                await Task.Delay(milliseconds);
-                                i++;
-                                if (isGamePlaying == true)
-                                {
-                                    CompareTheCards(sender, e);
-
-                                }
-                            }
+                            // if autoplaying multiple games is not picking up from where it was stopped, start autoplaying multiple games
+                            // from the first game
+                            game = 1;
                         }
-
-                        string defaultStatus = "";
-
-                        if (gameDefault == true)
-                            defaultStatus = "DEFAULT";
+                        // check to see that autoplaying multiple games is picking up from where it was stopped
                         else
-                            defaultStatus = "       ";
+                            // if autoplaying multiple games is picking up from where it was stopped, start autoplaying multiple games
+                            // from the game where this method left off
+                            game = currentGame;
 
-                        string listString = game + "   " + gameStartTime.ToString("hh:mm:ss tt") + "   " + gameEndTime.ToString("hh:mm:ss tt")
-                            + "   " + GetGameDuration() + "   " + round + "   " + defaultStatus + "  WL: " + warLevel + 
-                            " TPS: " + warPlayers[topPlayerIndex].Score + " BPS: " + warPlayers[bottomPlayerIndex].Score +
-                            " DC: " + dealtCardCount;
-
-                        roundList.Add(round);
-                        durationList.Add(GetGameDuration());
-                        testForm.lstBxGamesInfoDisplay.Items.Add(listString);
-
-                        // find the min and max number of round and their indexes
-                        minRounds = roundList[0];
-
-                        for (int r = 0; r < roundList.Count; r++)
+                        // loop through autoplaying games until the numberOfGames have been autoplayed or autoplaying is stopped by the user(s)
+                        while (game <= numberOfGames && isMultiAutoPlaying == true)
                         {
-                            if (roundList[r] < minRounds)
+                            // display on the testform the number of the current game being autoplayed
+                            testForm.lblCurrentGameRunning.Text = "Current game running: " + game;
+
+                            // if a game was being autoplayed (but not multi-autoplayed)
+                            if (isAutoPlaying == true)
                             {
-                                minRounds = roundList[r];
-                                minIndex = r;
+                                // stop the autoplaying playing game so it can be finished as one of the multiple autoplayed games
+                                isAutoPlaying = false;
                             }
+
+                            // if a manual or autoplaying game is not finished (awaitingReset) or a new game is ready to be played
+                            if (awaitingReset == false)
+                                // then play through the unfinished game or play through a new game
+                                await AutoPlayGame(sender, e);
+
+                            // check if the autoplayed game returned unfinished (perhaps stopped by the user(s))
+                            if (awaitingReset == false)
+                            {
+                                // save where this method is leaving off (the number of the game in progress) 
+                                currentGame = game;
+                                // stop multi-autoplaying
+                                isMultiAutoPlaying = false;
+                                // re-enable the Engage button on the testForm
+                                testForm.btnEngage.Enabled = true;
+
+                            }
+                            // check if the game in progress returned finished
+                            else if (awaitingReset == true)
+                            {
+                                // if the game in progress is finished
+
+                                // gather information about the game for the testForm game info display
+                                string defaultStatus = "";
+
+                                // if the game default flag is set, set the status to DEFAULT
+                                if (gameDefault == true)
+                                    defaultStatus = "DEFAULT";
+                                else
+                                {
+                                    // otherwise, check if the top player won
+                                    if (warPlayers[topPlayerIndex].Score == CARDS_IN_DECK)
+                                        // if the top player won, set the status to TP WIN
+                                        defaultStatus = "_____TP_WIN";
+                                    // check if the bottom player won
+                                    else if (warPlayers[bottomPlayerIndex].Score == CARDS_IN_DECK)
+                                        // if the bottom player, won set the  status to BP WIN
+                                        defaultStatus = "_____BP_WIN";
+                                    // check if the game was a draw
+                                    else if (warPlayers[topPlayerIndex].Score == warPlayers[bottomPlayerIndex].Score)
+                                        // if the game was a draw, set the status to DRAW
+                                        defaultStatus = "______DRAW";
+                                }
+                                
+                                // get the string representation of how long the game lasted
+                                string gameDurationString = GetGameDuration();
+                                
+                                // make the string representation of all the game info
+                                string listString = game.ToString().PadRight(10- game.ToString().Length) + gameStartTime.ToString("hh:mm:ss tt").PadLeft(20)
+                                    + gameEndTime.ToString("hh:mm:ss tt").PadLeft(18) + gameDurationString.PadLeft(14,'_') 
+                                    + round.ToString().PadLeft(10 - round.ToString().Length) + defaultStatus.PadLeft(10,'_') 
+                                    + warLevel.ToString().PadLeft(10) + warPlayers[topPlayerIndex].Score.ToString().PadLeft(10) + 
+                                    warPlayers[bottomPlayerIndex].Score.ToString().PadLeft(10) +
+                                     dealtCardCount.ToString().PadLeft(10);
+                                
+                                // add the number of rounds the game lasted to the round list
+                                roundList.Add(round);
+
+                                // add the game duration to the duration list
+                                durationList.Add(gameDurationString);
+
+                                // add the game info to the Games Info Display listbox on the testform
+                                testForm.lstBxGamesInfoDisplay.Items.Add(listString);
+
+                                // find the minimum number of rounds of all the games autoplayed and the index to the game that had the minimum
+
+                                // set the minimum number of rounds to the first number of rounds in the round list
+                                minRounds = roundList[0];
+
+                                // loop through the round list searching for the minimum number of rounds
+                                for (int r = 0; r < roundList.Count; r++)
+                                {
+                                    // if the current number of rounds is less than the minimum
+                                    if (roundList[r] < minRounds)
+                                    {
+                                        // make the current number of rounds the new minimum
+                                        minRounds = roundList[r];
+
+                                        // take note of the index to the minimum
+                                        minIndex = r;
+                                    }
+                                }
+
+                                // find the maximum number of rounds of all the games autoplayed and the index to the game that had the maximum
+
+                                // set the maximum number of rounds to the first number of rounds in the round list
+                                maxRounds = roundList[0];
+
+                                // loop through the round list searching for the maximum number of rounds
+                                for (int r = 0; r < roundList.Count; r++)
+                                {
+                                    // if the current number of rounds is greater than the maximum
+                                    if (roundList[r] > maxRounds)
+                                    {
+                                        // make the current number of rounds the new maximum
+                                        maxRounds = roundList[r];
+
+                                        // take note of the index to the maximum
+                                        maxIndex = r;
+                                    }
+                                }
+
+                                // display the game number of the game that had the minimum number of rounds in the Min Rounds Game Number label
+                                // on the testForm
+                                testForm.lblMinRoundsGameNumber.Text = "#: " + (minIndex + 1);
+
+                                // display the game number of the game that had the maximum number of rounds in the Max Rounds Game Number label
+                                // on the testForm
+                                testForm.lblMaxRoundsGameNumber.Text = "#: " + (maxIndex + 1);
+
+                                // display the minimum number of rounds in the Min Rounds label on the testForm
+                                testForm.lblMinRounds.Text = "Min: " + minRounds;
+
+                                // display the maximum number of rounds in the Max Rounds label on the testForm
+                                testForm.lblMaxRounds.Text = "Max: " + maxRounds;
+
+                                // display the duration of the game that had the minimum number of rounds in the MinRGDuration label on the testForm
+                                testForm.lblMinRGDuration.Text = "Min Rounds Game: " + ReplaceUnderscoreWithSpace(durationList[minIndex]);
+
+                                // display the duration of the game that had the maximum number of rounds in the MaxRGDuration label on the testForm
+                                testForm.lblMaxRGDuration.Text = "Max Rounds Game: " + ReplaceUnderscoreWithSpace(durationList[maxIndex]);
+
+                                // reset the current game
+                                ResetGame(sender, e);
+
+                                // increment the game counter
+                                game++;
+                            }
+                            
                         }
-                        maxRounds = roundList[0];
-                        for (int r = 0; r < roundList.Count; r++)
+
+                        // check if all games have been autoplayed
+                        if (game > numberOfGames)
                         {
-                            if (roundList[r] > maxRounds)
-                            {
-                                maxRounds = roundList[r];
-                                maxIndex = r;
-                            }
+                            // if all games have been autoplayed, display in the Current Game Running label on the testForm that the final game is complete
+                            testForm.lblCurrentGameRunning.Text = "Game " + numberOfGames + " is now complete";
+
+                            // reset all of the game info variables
+                            currentGame = 0;
+
+                            minRounds = 0;
+                            minIndex = 0;
+                            maxRounds = 0;
+                            maxIndex = 0;
+                            roundList.Clear();
+                            durationList.Clear();
+
+                            // reenable the clear button on the testForm
+                            testForm.btnClear.Enabled = true;
+
+                            // reset the flag indicating that multiple games are being autoplayed
+                            isMultiAutoPlaying = false;
                         }
 
-                        testForm.lblMinRoundsGameNumber.Text = "#: " + (minIndex + 1);
-                        testForm.lblMaxRoundsGameNumber.Text = "#: " + (maxIndex + 1);
-                        testForm.lblMinRounds.Text = "Min Rounds: " + minRounds;
-                        testForm.lblMaxRounds.Text = "Max Rounds: " + maxRounds;
-                        testForm.lblMinDuration.Text = "Min Dur: " + durationList[minIndex];
-                        testForm.lblMaxDuration.Text = "Max Dur: " + durationList[maxIndex];
-
-                        ResetGame(sender, e);
+                        // reenable the Engage button on the testForm
+                        testForm.btnEngage.Enabled = true;
                     }
-                                       
-
+                    // check if the number of games entered on the testForm is not greater than zero
+                    else
+                        // display an error message to the user(s) indicating that the number of games must be greater than zero
+                        MessageBox.Show("Number entered must be greater than 0");
                 }
+                // check if the text from the number of games text box is a valid number
                 else
-                    MessageBox.Show("Number entered must be greater than 0");
+                    // display an error message indicating to the user(s) that the number of games must be a valid integer number
+                    MessageBox.Show("You must enter an integer number");
             }
-            else
-                MessageBox.Show("You must enter an integer number");
+                        
+        }
 
-            // reenable the engage and clear buttons
-            testForm.btnEngage.Enabled = true;
-            testForm.btnClear.Enabled = true;
+        // this method removes the underscores present in a target string and replaces them with spaces
+        private string ReplaceUnderscoreWithSpace(string targetString)
+        {
+            string resultString = "";                       // variable to hold the result of this method operating on the target string
+            
+            // loop through the characters in the target string one at a time
+            for (int c = 0; c < targetString.Length; c++)
+            {
+                // if the current character is an underscore
+                if (targetString[c] == '_')
+                    // place a space character in the result string
+                    resultString += ' ';
+                // if the current character is not an underscore
+                else
+                    // place the current character in the result string
+                    resultString += targetString[c];
+            }
+
+            // return the result string
+            return resultString;
         }
 
         private string GetGameDuration()
         {
-            string duration = "";
+            string duration = "";                   // a string representation of the duration of a game
 
+            // check if the game took more than a day to play 
             if (gameElapsedTime.Days > 0)
-                duration = gameElapsedTime.Days + " days " + gameElapsedTime.Hours + " hr, " +
-                    gameElapsedTime.Minutes + " min, " + gameElapsedTime.Seconds + " sec";
+                // if the game did take more than a day to play, include the number of days in the game duration along with the hours, minutes and seconds
+                duration = gameElapsedTime.Days + "_days_" + gameElapsedTime.Hours + "_hr_" + gameElapsedTime.Minutes + "_min_" + 
+                    gameElapsedTime.Seconds + "_sec";
+            // check if the game took more than an hour to play
             else if (gameElapsedTime.Hours > 0)
-                duration = gameElapsedTime.Hours + " hr, " + gameElapsedTime.Minutes + " min, "
-                    + gameElapsedTime.Seconds + " sec";
+                // if the game did take more than an hour to play, include the number of hours in the game duration along with the minutes and seconds
+                duration = gameElapsedTime.Hours + "_hr_" + gameElapsedTime.Minutes + "_min_" + gameElapsedTime.Seconds + "_sec";
+            // check if the game took more than a minute to play
             else if (gameElapsedTime.Minutes > 0)
-                duration = gameElapsedTime.Minutes + " min, " + gameElapsedTime.Seconds + " sec";
+                // if the game did take more than a minute to play, include the number of minutes in the game duration along with the seconds
+                duration = gameElapsedTime.Minutes.ToString() + "_min_" + gameElapsedTime.Seconds.ToString() + "_sec";
+            // check if the game took more than a second to play
             else if (gameElapsedTime.Seconds > 0)
-                duration = gameElapsedTime.Seconds + " sec        ";
+                // if the game did take more than a second, include the number of seconds in the game duration
+                duration = gameElapsedTime.Seconds.ToString() + "_sec";
+            // check if the game took less than a second to play
             else
-                duration = "< 1 sec        ";
+                // if the game took less than a second to play, then include that information in the game duration
+                duration = "<_1_sec";
 
+            // return the string representation of the game duration
             return duration;
         }
 
         private void StopAutoPlaying(object sender, EventArgs e)
         {
             isAutoPlaying = false;
+            if (isMultiAutoPlaying == true)
+                isMultiAutoPlaying = false;
         }
 
-        private void AutoPlayThroughToEnd(object sender, EventArgs e)
+        async private void AutoPlayThroughToEnd(object sender, EventArgs e)
         {
             warThreshold = 100;
-            AutoPlayGame(sender, e);
+
+            // check if autoplaying multiple games is not ongoing
+            if (currentGame == 0)                       
+                await AutoPlayGame(sender, e);
+            else if (currentGame > 0)
+                await AutoPlayMultipleGames(sender, e);
 
         }
 
-        private void autoPlayUntilWARLevel1(object sender, EventArgs e)
+        async private void AutoPlayUntilWARLevel1(object sender, EventArgs e)
         {
             warThreshold = 1;
-            AutoPlayGame(sender, e);
+            // check if autoplaying multiple games is not ongoing
+            if (currentGame == 0)
+                await AutoPlayGame(sender, e);
+            else if (currentGame > 0)
+                await AutoPlayMultipleGames(sender, e);
 
         }
 
-        private void AutoPlayUntilWARLevel2(object sender, EventArgs e)
+        async private void AutoPlayUntilWARLevel2(object sender, EventArgs e)
         {
             warThreshold = 2;
-            AutoPlayGame(sender, e);
+            // check if autoplaying multiple games is not ongoing
+            if (currentGame == 0)
+                await AutoPlayGame(sender, e);
+            else if (currentGame > 0)
+                await AutoPlayMultipleGames(sender, e);
 
         }
 
-        private void AutoPlayUntilWARLevel3(object sender, EventArgs e)
+        async private void AutoPlayUntilWARLevel3(object sender, EventArgs e)
         {
             warThreshold = 3;
-            AutoPlayGame(sender, e);
+            // check if autoplaying multiple games is not ongoing
+            if (currentGame == 0)
+                await AutoPlayGame(sender, e);
+            else if (currentGame > 0)
+                await AutoPlayMultipleGames(sender, e);
 
         }
 
-        async private void AutoPlayGame(object sender, EventArgs e)
+        async private Task AutoPlayGame(object sender, EventArgs e)
         {
-            int r,                              // loop counter for number of rounds game has been played
-                milliseconds = 1;                   // the time of the delay (in milliseconds) that the game is displayed
+            int milliseconds = 1;               // the time of the delay (in milliseconds) that the game is displayed
                                                 // so the user(s) may see the state of the game
 
             // check to see that a game is not already autoplaying
@@ -1370,41 +1544,14 @@ namespace WAR_Card_Game
                 {
                     // if a game hasn't started yet
 
-                    // set the round loop counter to one
-                    r = 1;
-
                     // begin to play an autoplay game
                     PlayWAR(sender, e);
-
-                    // loop through rounds of the game until the game is either called a draw or the game ends or the user stops autoplaying
-                    // or the war level rises to the threshold
-                    while (r <= drawMaxRounds && isGamePlaying == true && isAutoPlaying == true && warLevel < warThreshold)
-                    {
-                        // deal the cards
-                        DealTheCards(sender, e);
-
-                        // set the game display delay
-                        //milliseconds = 1;
-                        
-                        // implement the delay
-                        await Task.Delay(milliseconds);
-
-                        // increment the round loop counter
-                        r++;
-
-                        // check if the game has ended
-                        if (isGamePlaying == true)
-                        {
-                            // if the game has not ended, compare the cards
-                            CompareTheCards(sender, e);
-
-                        }
-                    }
+                                        
                 }
                 // check to see if a manual game has started
                 else
                 {
-                    // if game has started
+                    // if a manual game has started
                     // finish the current round
 
                     // if the current round is in the "deal the cards" phase
@@ -1425,33 +1572,25 @@ namespace WAR_Card_Game
                     else if (compareCardsToolStripMenuItem.Enabled == true)
                         // compare the cards
                         CompareTheCards(sender, e);
+                                        
+                }
 
-                    // set the loop counter to the current round
-                    r = round;
+                // loop through rounds of the game until the game is either called a draw or the game ends or the user stops autoplaying
+                // or the war level rises to the threshold
+                while (isGamePlaying == true && isAutoPlaying == true && warLevel < warThreshold)
+                {
+                    // deal the cards
+                    DealTheCards(sender, e);
 
-                    // loop through rounds of the game until the game is either called a draw or the game ends or the user stops autoplaying
-                    // or the war level rises to the threshold
-                    while (r <= drawMaxRounds && isGamePlaying == true && isAutoPlaying == true && warLevel < warThreshold)
+                    // implement the delay
+                    await Task.Delay(milliseconds);
+
+                    // check if the game has not ended
+                    if (isGamePlaying == true)
                     {
-                        // deal the cards
-                        DealTheCards(sender, e);
+                        // if the game has not ended, compare the cards
+                        CompareTheCards(sender, e);
 
-                        // set the game display delay
-                        //milliseconds = 1;
-
-                        // implement the delay
-                        await Task.Delay(milliseconds);
-
-                        // increment the loop counter
-                        r++;
-
-                        // check to see if the game has ended
-                        if (isGamePlaying == true)
-                        {
-                            // if the game has not ended, compare the cards
-                            CompareTheCards(sender, e);
-
-                        }
                     }
                 }
 
@@ -1460,6 +1599,7 @@ namespace WAR_Card_Game
 
                 // update the Output label
                 UpdateOutputLabel();
+
                 // reconfigure context menu
 
                 // if the user has stopped autoplay and the game is not yet awaiting reset
@@ -2061,15 +2201,41 @@ namespace WAR_Card_Game
                 if (isGamePlaying == true)
                 {
                     // if a game is still playing
+                    if (round >= drawMaxRounds)
+                    {
+                        int lead = 0;
 
-                    // update the output label
-                    UpdateOutputLabel();
+                        if (warPlayers[topPlayerIndex].Score > warPlayers[bottomPlayerIndex].Score)
+                        {
+                            lead = warPlayers[topPlayerIndex].Score - warPlayers[bottomPlayerIndex].Score;
+                            lblCommentary.Text = "Sorry folks, we've reached the round limit at which we have to call the game!  " 
+                                + warPlayers[topPlayerIndex].Identifier + " " + warPlayers[topPlayerIndex].Name + " won by " + lead 
+                                + " points!";
 
-                    // increment the round
-                    round++;
+                        }
+                        else if (warPlayers[bottomPlayerIndex].Score > warPlayers[topPlayerIndex].Score)
+                        {
+                            lead = warPlayers[bottomPlayerIndex].Score - warPlayers[topPlayerIndex].Score;
+                            lblCommentary.Text = "Sorry folks, we've reached the round limit at which we have to call the game!  "
+                                + warPlayers[bottomPlayerIndex].Identifier + " " + warPlayers[bottomPlayerIndex].Name + " won by " + lead
+                                + " points!";
+                        }
+                        else
+                            lblCommentary.Text = "Sorry folks, since noone's ahead and we've reached the round limit, we have to call the game a draw!";
 
-                    // display the round in the Round label
-                    lblRound.Text = "Round\n" + round;
+                        End();
+                    }
+                    else if (round < drawMaxRounds)
+                    {
+                        // update the output label
+                        UpdateOutputLabel();
+
+                        // increment the round
+                        round++;
+
+                        // display the round in the Round label
+                        lblRound.Text = "Round\n" + round;
+                    }
                 }
                 
             }
@@ -2320,62 +2486,75 @@ namespace WAR_Card_Game
                 lblGameDuration.Text = "Game Duration: < 1 sec";
         }
 
-        /*
-        private void DoubleClickOnMainForm(object sender, EventArgs e)
-        {
-            //lblOutput.Text = "Double click on the form is working";
-            //this.SetTopLevel(true);
-            //this.BringToFront();
-
-            if (this.Focused)
-                lblOutput.Text = "Form has focus";
-            else
-                lblOutput.Text = "Form does not have focus";
-
-        }
-        */
-
-        private void KeyPressOnMainForm(object sender, KeyEventArgs e)
+        // this method allows me to type a code which launchs the testform 
+        // unlocking the capability to autoplay multiple games (primarily for test purposes)
+        private void KeyPressOnMainForm(object sender, KeyEventArgs e)           
         {
             //int keyValue = e.KeyValue;
-            Keys keyCode = e.KeyCode;
+            Keys keyCode = e.KeyCode;                   // the code of the key that was pressed
 
-            if (keyString.Length < 4)
+            // check if up to four keys have been pressed
+            if (keyString.Length <= 4)
             {
+                // if up to 4 keys have been pressed, store the key codes to the key string
                 keyString += keyCode.ToString();
                 //lblOutput.Text = "Key was pressed with keyCode = " + keyCode.ToString() +
-                //  "\n keyString = " + keyString;
+                    //"\n keyString = " + keyString;
             }
 
-            if (keyString.Length == 4 && keyString.ToLower() == "jhle")
+            // check if four keys have been pressed 
+            if (keyString.Length == 4)
             {
-                MessageBox.Show("Code \"" + keyString + "\" accepted");
-                keyString = "";
-
-                if (isGamePlaying == false)
+                // if four keys have been pressed, compare them to the secret code
+                if (keyString.ToLower() == "jhle")
                 {
-                    if (awaitingReset == false)
+                    // display a message to indcate the code was accepted
+                    //MessageBox.Show("Code \"" + keyString + "\" accepted");
+
+                    // empty the key string
+                    keyString = "";
+
+                    // if the testForm hasn't been instantiated
+                    if (testForm == null)
                     {
+                        // instantiate the testForm
                         testForm = new TestFormWAR(this);
+
+                        // display the testForm
                         testForm.Show();
                     }
-                    else
+                    // if the  testForm has  been instantiated
+                    else if (testForm != null)
                     {
-                        MessageBox.Show("You must reset the game first!");
-                    }
-                }
-                else
-                {
-                    MessageBox.Show("You must end the current game first!");
-                }
+                        // close this existing testForm so that there are not two testforms
+                        testForm.Close();
 
+                        // instantiate a new testForm
+                        testForm = new TestFormWAR(this);
+
+                        // display the new testform
+                        testForm.Show();
+                    }
+                    
+                }
+                // check if the the four keys pressed don't match the the secret code
+                else if (keyString.ToLower() != "jhle")
+                {
+                    // display a message indcating the code was rejected
+                    //MessageBox.Show("Code \"" + keyString + "\" rejected");
+
+                    // empty the key string
+                    keyString = "";
+                }
             }
-            else if (keyString.Length == 4 && keyString.ToLower() != "jhle")
+
+            // if five or more characters get into the key string
+            if (keyString.Length >= 5)
             {
-                lblOutput.Text = "Code \"" + keyString + "\" rejected";
+                // empty the key string
                 keyString = "";
             }
-
+             
         }
 
         private void ExitProgram(object sender, EventArgs e)
