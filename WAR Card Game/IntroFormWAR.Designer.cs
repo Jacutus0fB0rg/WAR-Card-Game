@@ -29,6 +29,7 @@ namespace WAR_Card_Game
         /// </summary>
         private void InitializeComponent()
         {
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(IntroFormWAR));
             this.btnContinue = new System.Windows.Forms.Button();
             this.lblWelcome = new System.Windows.Forms.Label();
             this.txtBxTopPlayerName = new System.Windows.Forms.TextBox();
@@ -78,26 +79,27 @@ namespace WAR_Card_Game
             // 
             // lblTopPlayerName
             // 
-            this.lblTopPlayerName.AutoSize = true;
             this.lblTopPlayerName.Font = new System.Drawing.Font("Trebuchet MS", 14.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.lblTopPlayerName.Location = new System.Drawing.Point(139, 173);
+            this.lblTopPlayerName.Location = new System.Drawing.Point(139, 170);
             this.lblTopPlayerName.Name = "lblTopPlayerName";
-            this.lblTopPlayerName.Size = new System.Drawing.Size(301, 24);
+            this.lblTopPlayerName.Size = new System.Drawing.Size(334, 30);
             this.lblTopPlayerName.TabIndex = 4;
             this.lblTopPlayerName.Text = "Enter the Top Player\'s first name: ";
+            this.lblTopPlayerName.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
             // lblBottomPlayerName
             // 
-            this.lblBottomPlayerName.AutoSize = true;
             this.lblBottomPlayerName.Font = new System.Drawing.Font("Trebuchet MS", 14.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.lblBottomPlayerName.Location = new System.Drawing.Point(139, 243);
+            this.lblBottomPlayerName.Location = new System.Drawing.Point(139, 240);
             this.lblBottomPlayerName.Name = "lblBottomPlayerName";
-            this.lblBottomPlayerName.Size = new System.Drawing.Size(334, 24);
+            this.lblBottomPlayerName.Size = new System.Drawing.Size(334, 30);
             this.lblBottomPlayerName.TabIndex = 5;
             this.lblBottomPlayerName.Text = "Enter the Bottom Player\'s first name: ";
+            this.lblBottomPlayerName.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
             // btnExit
             // 
+            this.btnExit.DialogResult = System.Windows.Forms.DialogResult.Cancel;
             this.btnExit.Font = new System.Drawing.Font("Tahoma", 14.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.btnExit.Location = new System.Drawing.Point(445, 321);
             this.btnExit.Name = "btnExit";
@@ -107,12 +109,15 @@ namespace WAR_Card_Game
             this.btnExit.UseVisualStyleBackColor = true;
             this.btnExit.Click += new System.EventHandler(this.btnExit_Click);
             // 
-            // InfoFormWAR
+            // IntroFormWAR
             // 
             this.AcceptButton = this.btnContinue;
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.DeepSkyBlue;
+            this.BackgroundImage = ((System.Drawing.Image)(resources.GetObject("$this.BackgroundImage")));
+            this.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch;
+            this.CancelButton = this.btnExit;
             this.ClientSize = new System.Drawing.Size(800, 450);
             this.Controls.Add(this.btnExit);
             this.Controls.Add(this.lblBottomPlayerName);
@@ -123,7 +128,7 @@ namespace WAR_Card_Game
             this.Controls.Add(this.btnContinue);
             this.MaximizeBox = false;
             this.MinimizeBox = false;
-            this.Name = "InfoFormWAR";
+            this.Name = "IntroFormWAR";
             this.Text = "Intro Form";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.IntroFormClosing);
             this.Load += new System.EventHandler(this.IntroFormWAR_Load);

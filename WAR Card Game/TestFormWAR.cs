@@ -17,6 +17,8 @@ namespace WAR_Card_Game
         public TestFormWAR(MainFormWAR mainForm1)
         {
             InitializeComponent();
+
+            // obtain a reference to the mainForm
             this.mainForm = mainForm1;
             
         }
@@ -31,6 +33,8 @@ namespace WAR_Card_Game
             // disable the engage and clear buttons
             btnEngage.Enabled = false;
             btnClear.Enabled = false;
+            btnStop.Enabled = true;
+            btnQuit.Enabled = true;
 
             try
             {
@@ -44,8 +48,7 @@ namespace WAR_Card_Game
                 // display its error message
                 MessageBox.Show(ex.Message);
             }
-
-            
+                        
         }
 
         private void btnClear_Click(object sender, EventArgs e)
@@ -56,7 +59,7 @@ namespace WAR_Card_Game
             txtBxNumberOfGameRuns.Clear();
         }
 
-        private void ClearTestForm()
+        public void ClearTestForm()
         {
             // clear the games info display listbox
             lstBxGamesInfoDisplay.Items.Clear();
@@ -76,6 +79,130 @@ namespace WAR_Card_Game
             // clear the label that displays the number of the currently running game
             lblCurrentGameRunning.Text = "Current game running: ";
         }
+
+        public void btnQuit_Click(object sender, EventArgs e)
+        {
+            // if multi-autoplaying is ongoing
+            if (mainForm.isMultiAutoPlaying == true)
+            {
+                // set the number of games to zero
+                mainForm.numberOfGames = 0;
+
+                // stop multi-autoplaying
+                mainForm.StopAutoPlaying(sender, e);
+
+                // quit the resulting manual game
+                mainForm.QuitManualGame(sender, e);
                 
+                // set the focus to the Number of Game Runs textbox
+                txtBxNumberOfGameRuns.Focus();
+
+                // select all the  textx in the text box so it is easier for the user to change
+                txtBxNumberOfGameRuns.SelectAll();
+                                
+            }
+            // if a multi-autoplaying is stopped
+            else if (mainForm.currentGame > 0 && mainForm.isGamePlaying == true)
+            {
+                // clear the testForm
+                ClearTestForm();
+
+                // reset all of the game info variables
+                mainForm.ResetAllGameInfoVariables();
+                
+                // end the game
+                mainForm.End();
+
+                // reset the game
+                mainForm.ResetGame(sender, e);
+
+            }
+            // if a stopped multi-autoplaying game has be manually played to the end
+            else if (mainForm.currentGame > 0 && mainForm.awaitingReset == true)
+            {
+                // clear the testForm
+                ClearTestForm();
+
+                // reset all of the game info variables
+                mainForm.ResetAllGameInfoVariables();
+
+                // reset the game
+                mainForm.ResetGame(sender, e);
+            }
+
+            // reenable the Engage button on the testForm
+            btnEngage.Enabled = true;
+
+            // disable the Quit button on the testForm
+            btnQuit.Enabled = false;
+
+            // enable or disable the Clear button (depending on the circumstances) on the testForm
+            mainForm.EnOrDisAbleClearButton();
+
+            // disable the Stop button on the testForm
+            btnStop.Enabled = false;
+        }
+
+        private void txtBxNumberOfGameRuns_TextChanged(object sender, EventArgs e)
+        {
+            // enable or disable the Clear button (depending on the circumstances) on the testForm
+            mainForm.EnOrDisAbleClearButton();
+
+            // if the Number of Game Runs text is not empty
+            if (txtBxNumberOfGameRuns.Text != "")
+                // enable the Engage button on the testform
+                btnEngage.Enabled = true;
+            // if the Number of Game Runs text is empty
+            else
+                // disable the Engage button on the testform
+                btnEngage.Enabled = false;
+        }
+
+        private void lstBxGamesInfoDisplay_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            // enable or disable the Clear button (depending on the circumstances) on the testForm
+            mainForm.EnOrDisAbleClearButton();
+        }
+
+        private void TestFormClosing(object sender, FormClosingEventArgs e)
+        {
+            // if multi-autoplaying games are running when the testForm is closed
+            // call the Quit button click method
+            btnQuit_Click(sender, e);
+
+        }
+
+        private void btnStop_Click(object sender, EventArgs e)
+        {
+            // stop autoplaying
+            mainForm.StopAutoPlaying(sender, e);
+
+            // disable the Stop button on the testform
+            btnStop.Enabled = false;
+
+            // enable the Engage button on the testform
+            btnEngage.Enabled = true;
+
+            // enable or disable the Clear button (depending on the circumstances) on the testForm
+            mainForm.EnOrDisAbleClearButton();
+
+            // enable the Quit button on the testForm
+            btnQuit.Enabled = true;
+        }
+
+        private void TestFormWAR_Load(object sender, EventArgs e)
+        {
+            // disable all buttons on the  testForm
+            btnEngage.Enabled = false;
+            btnClear.Enabled = false;
+            btnStop.Enabled = false;
+            btnQuit.Enabled = false;
+            btnExit.Enabled = true;
+        }
+
+        private void btnExit_Click(object sender, EventArgs e)
+        {
+            this.Close();
+        }
     }
 }

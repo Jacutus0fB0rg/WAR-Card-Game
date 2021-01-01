@@ -8,18 +8,17 @@ using System.Drawing;
 
 namespace WAR_Card_Game
 {
-    enum State { Initial, Gathered, Spread }
-
+    enum State { Initial, Gathered, Spread }        // Inital state is that the cards in this group have just been created 
+                                                    // Gathered state is that the cards have been repositioned to all the same spot
+                                                    // Spread state is that the cards have been spread out on the application form 
     class GroupOfPlayingCards
     {
         // this class is meant to model a group of playing cards from a deck of cards
 
         private string _identifier;                 // string variable which allows the group to be identified
         private List<PlayingCard> _group;           // List of playing cards in this group
-        private State _state;
-        private Point _location;
-
-        //private const int cardsInDeck = 52, cardsInHalfDeck = 26;
+        private State _state;                       // condition (state of being) of the group
+        private Point _location;                    // position of the group on the application form
 
         public GroupOfPlayingCards()                // group constructor method
         {

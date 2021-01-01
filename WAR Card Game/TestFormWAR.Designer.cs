@@ -53,8 +53,11 @@ namespace WAR_Card_Game
             this.lblMAGTopPlayerScore = new System.Windows.Forms.Label();
             this.lblMAGBottomPlayerScore = new System.Windows.Forms.Label();
             this.lblMAGWARLevel = new System.Windows.Forms.Label();
-            this.lblMAGDealtCardCount = new System.Windows.Forms.Label();
+            this.lblMAGHighestWARLevel = new System.Windows.Forms.Label();
             this.lstBxGamesInfoDisplay = new System.Windows.Forms.ListBox();
+            this.btnQuit = new System.Windows.Forms.Button();
+            this.btnStop = new System.Windows.Forms.Button();
+            this.btnExit = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
             // txtBxNumberOfGameRuns
@@ -64,6 +67,7 @@ namespace WAR_Card_Game
             this.txtBxNumberOfGameRuns.Name = "txtBxNumberOfGameRuns";
             this.txtBxNumberOfGameRuns.Size = new System.Drawing.Size(100, 27);
             this.txtBxNumberOfGameRuns.TabIndex = 0;
+            this.txtBxNumberOfGameRuns.TextChanged += new System.EventHandler(this.txtBxNumberOfGameRuns_TextChanged);
             // 
             // lblNumberOfGameRuns
             // 
@@ -91,11 +95,11 @@ namespace WAR_Card_Game
             // btnEngage
             // 
             this.btnEngage.Font = new System.Drawing.Font("Times New Roman", 15.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btnEngage.Location = new System.Drawing.Point(234, 487);
+            this.btnEngage.Location = new System.Drawing.Point(65, 487);
             this.btnEngage.Name = "btnEngage";
             this.btnEngage.Size = new System.Drawing.Size(102, 35);
             this.btnEngage.TabIndex = 3;
-            this.btnEngage.Text = "Engage";
+            this.btnEngage.Text = "&Engage";
             this.btnEngage.UseVisualStyleBackColor = true;
             this.btnEngage.Click += new System.EventHandler(this.btnEngage_Click);
             // 
@@ -113,11 +117,11 @@ namespace WAR_Card_Game
             // btnClear
             // 
             this.btnClear.Font = new System.Drawing.Font("Times New Roman", 15.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btnClear.Location = new System.Drawing.Point(423, 487);
+            this.btnClear.Location = new System.Drawing.Point(207, 487);
             this.btnClear.Name = "btnClear";
             this.btnClear.Size = new System.Drawing.Size(102, 35);
             this.btnClear.TabIndex = 6;
-            this.btnClear.Text = "Clear";
+            this.btnClear.Text = "&Clear";
             this.btnClear.UseVisualStyleBackColor = true;
             this.btnClear.Click += new System.EventHandler(this.btnClear_Click);
             // 
@@ -319,16 +323,16 @@ namespace WAR_Card_Game
             this.lblMAGWARLevel.Text = "WAR";
             this.lblMAGWARLevel.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
-            // lblMAGDealtCardCount
+            // lblMAGHighestWARLevel
             // 
-            this.lblMAGDealtCardCount.BackColor = System.Drawing.Color.Aqua;
-            this.lblMAGDealtCardCount.Font = new System.Drawing.Font("RM Pro", 9.749999F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.lblMAGDealtCardCount.Location = new System.Drawing.Point(741, 86);
-            this.lblMAGDealtCardCount.Name = "lblMAGDealtCardCount";
-            this.lblMAGDealtCardCount.Size = new System.Drawing.Size(39, 28);
-            this.lblMAGDealtCardCount.TabIndex = 35;
-            this.lblMAGDealtCardCount.Text = "DC";
-            this.lblMAGDealtCardCount.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.lblMAGHighestWARLevel.BackColor = System.Drawing.Color.Aqua;
+            this.lblMAGHighestWARLevel.Font = new System.Drawing.Font("RM Pro", 9.749999F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.lblMAGHighestWARLevel.Location = new System.Drawing.Point(741, 86);
+            this.lblMAGHighestWARLevel.Name = "lblMAGHighestWARLevel";
+            this.lblMAGHighestWARLevel.Size = new System.Drawing.Size(39, 28);
+            this.lblMAGHighestWARLevel.TabIndex = 35;
+            this.lblMAGHighestWARLevel.Text = "HWL";
+            this.lblMAGHighestWARLevel.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
             // lstBxGamesInfoDisplay
             // 
@@ -339,15 +343,57 @@ namespace WAR_Card_Game
             this.lstBxGamesInfoDisplay.Name = "lstBxGamesInfoDisplay";
             this.lstBxGamesInfoDisplay.Size = new System.Drawing.Size(768, 204);
             this.lstBxGamesInfoDisplay.TabIndex = 36;
+            this.lstBxGamesInfoDisplay.SelectedIndexChanged += new System.EventHandler(this.lstBxGamesInfoDisplay_SelectedIndexChanged);
+            // 
+            // btnQuit
+            // 
+            this.btnQuit.Enabled = false;
+            this.btnQuit.Font = new System.Drawing.Font("Times New Roman", 15.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btnQuit.Location = new System.Drawing.Point(491, 487);
+            this.btnQuit.Name = "btnQuit";
+            this.btnQuit.Size = new System.Drawing.Size(102, 35);
+            this.btnQuit.TabIndex = 37;
+            this.btnQuit.Text = "&Quit";
+            this.btnQuit.UseVisualStyleBackColor = true;
+            this.btnQuit.Click += new System.EventHandler(this.btnQuit_Click);
+            // 
+            // btnStop
+            // 
+            this.btnStop.Font = new System.Drawing.Font("Times New Roman", 15.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btnStop.Location = new System.Drawing.Point(349, 487);
+            this.btnStop.Name = "btnStop";
+            this.btnStop.Size = new System.Drawing.Size(102, 35);
+            this.btnStop.TabIndex = 38;
+            this.btnStop.Text = "&Stop";
+            this.btnStop.UseVisualStyleBackColor = true;
+            this.btnStop.Click += new System.EventHandler(this.btnStop_Click);
+            // 
+            // btnExit
+            // 
+            this.btnExit.DialogResult = System.Windows.Forms.DialogResult.Cancel;
+            this.btnExit.Enabled = false;
+            this.btnExit.Font = new System.Drawing.Font("Times New Roman", 15.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btnExit.Location = new System.Drawing.Point(633, 487);
+            this.btnExit.Name = "btnExit";
+            this.btnExit.Size = new System.Drawing.Size(102, 35);
+            this.btnExit.TabIndex = 39;
+            this.btnExit.Text = "E&xit";
+            this.btnExit.UseVisualStyleBackColor = true;
+            this.btnExit.Click += new System.EventHandler(this.btnExit_Click);
             // 
             // TestFormWAR
             // 
+            this.AcceptButton = this.btnEngage;
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.Black;
+            this.CancelButton = this.btnExit;
             this.ClientSize = new System.Drawing.Size(800, 570);
+            this.Controls.Add(this.btnExit);
+            this.Controls.Add(this.btnStop);
+            this.Controls.Add(this.btnQuit);
             this.Controls.Add(this.lstBxGamesInfoDisplay);
-            this.Controls.Add(this.lblMAGDealtCardCount);
+            this.Controls.Add(this.lblMAGHighestWARLevel);
             this.Controls.Add(this.lblMAGWARLevel);
             this.Controls.Add(this.lblMAGBottomPlayerScore);
             this.Controls.Add(this.lblMAGTopPlayerScore);
@@ -374,6 +420,8 @@ namespace WAR_Card_Game
             this.Controls.Add(this.txtBxNumberOfGameRuns);
             this.Name = "TestFormWAR";
             this.Text = "Test Form for WAR Card Game";
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.TestFormClosing);
+            this.Load += new System.EventHandler(this.TestFormWAR_Load);
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -404,7 +452,10 @@ namespace WAR_Card_Game
         public System.Windows.Forms.Label lblMAGTopPlayerScore;
         public System.Windows.Forms.Label lblMAGBottomPlayerScore;
         public System.Windows.Forms.Label lblMAGWARLevel;
-        public System.Windows.Forms.Label lblMAGDealtCardCount;
+        public System.Windows.Forms.Label lblMAGHighestWARLevel;
         public System.Windows.Forms.ListBox lstBxGamesInfoDisplay;
+        public System.Windows.Forms.Button btnQuit;
+        public System.Windows.Forms.Button btnStop;
+        public System.Windows.Forms.Button btnExit;
     }
 }

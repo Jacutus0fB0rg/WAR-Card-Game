@@ -23,7 +23,7 @@ namespace WAR_Card_Game
 
         bool isDeckSplit = false;       // flag to indicate that the deck of cards has been divided in half
                                         // (split into first half group and  second half group)
-        bool isGamePlaying = false;     // flag to indicate that a game is currently being played
+        public bool isGamePlaying = false;     // flag to indicate that a game is currently being played
 
         // the deckOfPlayingCards variable is a List of GroupOfPlayingCards objects
         // each group is a List of PlayingCard objects
@@ -58,10 +58,10 @@ namespace WAR_Card_Game
 
         int centeredCardX, centeredCardY;   // these are the coordinates of the upper left corner (Location) of a card when it is
                                             // centered on the main form
-        string keyString = "";
+        string keyString = "";              // string to hold the keys typed in by the user
 
-        CardReference selectedCardReference;
-        string selectedCardString;
+        CardReference selectedCardReference;                    // reference to the card in the deckOfPlayingCards that is currently selected by the user
+        string selectedCardString;                              // string to hold the name of the cards currently selected by the user
 
         // setup variables
         // coords for setting up positions of cards
@@ -82,24 +82,35 @@ namespace WAR_Card_Game
 
         ControlMode controlMode = ControlMode.UserGame;         // configuration of the user interface for different purposes
 
-        bool awaitingReset = false,                             // flag indicating there is a currently playing game that is waiting to be reset
+        public bool awaitingReset = false,                      // flag indicating there is a currently playing game that is waiting to be reset
                                                                 // (this allows the user(s) to see the state of the currently playing game when it ends)                             
             isAutoPlaying = false;                              // flag indicating that the currently playing game is autoplaying
 
-        bool gameDefault = false;
+        bool gameDefault = false;                               // flag indicating that the current game has ended with a default (one of the players
+                                                                // ran out of cards)
 
-        int dealtCardCount = 0;
+        //int dealtCardCount = 0;                                 // number of dealt cards left at the end of a multi-autoplayed game
 
-        int warThreshold = 100;
+        const int MAX_WAR_LEVEL = 14;                           // highest possible war level
 
-        int drawMaxRounds = 10000;                              // the number of rounds at which a game will be declared a draw
+        int warThreshold = MAX_WAR_LEVEL;                       // war level at which the auto or multi-autoplaying game will be stopped
 
-        bool isMultiAutoPlaying = false;
-        public int currentGame = 0;
+        const int DRAW_MAX_ROUNDS = 10000;                      // the number of rounds at which a game will be declared a draw
 
-        int minRounds, minIndex = 0, maxRounds, maxIndex = 0;
-        List<int> roundList = new List<int>();
-        List<string> durationList = new List<string>();
+        public bool isMultiAutoPlaying = false;                 // flag indicating that multi-autoplaying is currently ongoing
+        public int currentGame = 0;                             // number of the currently multi-autoplaying game 
+
+        int minRounds,                                          // fewest number of rounds of all the multi-autoplaying games
+            minIndex = 0,                                       // index into the roundList to the game that has the fewest number of rounds
+            maxRounds,                                          // largest number of rounds of all the multi-autoplaying games
+            maxIndex = 0;                                       // index into the roundList to the game that has the largest number of rounds
+
+        List<int> roundList = new List<int>();                  // List of the number of rounds of each of the multi-autoplaying games
+        List<string> durationList = new List<string>();         // List of string representations of the durations of each of the multi-autoplaying games
+
+        public int numberOfGames;                               // number of games in the current multi-autoplay games run
+
+        int highestWARLevel = 0;
 
         public MainFormWAR()
         {
@@ -1056,6 +1067,8 @@ namespace WAR_Card_Game
                 // set the warLevel to zero (indicating that there currently is no "WAR")
                 warLevel = 0;
 
+                highestWARLevel = 0;
+
                 gameDefault = false;
 
                 // gather the first half of the deck at the point at which the Top Player will deal cards from
@@ -1186,24 +1199,65 @@ namespace WAR_Card_Game
                 // make the Compare Cards Context Menu item visible so the user will know they can select it in the future
                 compareCardsToolStripMenuItem.Visible = true;
 
+                quitManualGameToolStripMenuItem.Enabled = true;
+                quitManualGameToolStripMenuItem.Visible = true;
+
                 // update the Output label
                 UpdateOutputLabel();
             }
         }
 
+        public void QuitManualGame(object sender, EventArgs e)
+        {
+            // if a multi-autoplay game is stopped
+            if (currentGame > 0 && isGamePlaying == true)
+            {
+                // clear the testform
+                testForm.ClearTestForm();
+
+                // reset all of the game info variables
+                ResetAllGameInfoVariables();
+                
+                // enable or disable the clear button (depending on the circumstances) on the testForm
+                EnOrDisAbleClearButton();
+
+                // reenable the Engage button on the testForm
+                testForm.btnEngage.Enabled = true;
+
+                // disable the Quit button on the testForm
+                testForm.btnQuit.Enabled = false;
+
+                // end the game
+                End();
+
+                // reset the game
+                ResetGame(sender, e);
+                
+            }
+            // if a manual game is playing
+            else if (isGamePlaying == true)
+            {
+                // end the game
+                End();
+
+                //reset the game
+                ResetGame(sender, e);
+            }
+            // if neither a manual game is playine or a multi-autoplaying game is stopped
+            else
+                // display and error message
+                MessageBox.Show("Attempt was made to quit manual game when no game is playing");
+        }
+
         async public Task AutoPlayMultipleGames(object sender, EventArgs e)
         {
             
-            int numberOfGames,                          // number of games to be autoplayed
-                game;                                   // number of the current game being autoplayed
+            //int numberOfGames,                          // number of games to be autoplayed
+            int    game = 0;                                   // number of the current game being autoplayed
                    
             // check to see if autoplaying multiple games is not already ongoing
             if (isMultiAutoPlaying == false)
             {
-                // if autoplaying multiple games is not already ongoing, set the flag indicating that autoplaying multiple games
-                // is now ongoing
-                isMultiAutoPlaying = true;
-
                 // get the number of games to autoplay from the test form;
                 if (int.TryParse(testForm.txtBxNumberOfGameRuns.Text, out numberOfGames))
                 {
@@ -1212,6 +1266,10 @@ namespace WAR_Card_Game
                     // check to see if number of games is greater than zero
                     if (numberOfGames > 0)
                     {
+                        // if autoplaying multiple games is not already ongoing, set the flag indicating that autoplaying multiple games
+                        // is now ongoing
+                        isMultiAutoPlaying = true;
+
                         // check to see that autoplaying multiple games is not picking up from where it was stopped
                         if (currentGame == 0)
                         {
@@ -1276,22 +1334,25 @@ namespace WAR_Card_Game
                                         // if the bottom player, won set the  status to BP WIN
                                         defaultStatus = "_____BP_WIN";
                                     // check if the game was a draw
-                                    else if (warPlayers[topPlayerIndex].Score == warPlayers[bottomPlayerIndex].Score)
+                                    else if ((warPlayers[topPlayerIndex].Score == warPlayers[bottomPlayerIndex].Score && round == DRAW_MAX_ROUNDS) ||
+                                        (warLevel == MAX_WAR_LEVEL && gameDefault == false && warPlayers[topPlayerIndex].Score != CARDS_IN_DECK &&
+                                        warPlayers[bottomPlayerIndex].Score != CARDS_IN_DECK))
                                         // if the game was a draw, set the status to DRAW
                                         defaultStatus = "______DRAW";
                                 }
-                                
+
                                 // get the string representation of how long the game lasted
                                 string gameDurationString = GetGameDuration();
-                                
+
                                 // make the string representation of all the game info
-                                string listString = game.ToString().PadRight(10- game.ToString().Length) + gameStartTime.ToString("hh:mm:ss tt").PadLeft(20)
-                                    + gameEndTime.ToString("hh:mm:ss tt").PadLeft(18) + gameDurationString.PadLeft(14,'_') 
-                                    + round.ToString().PadLeft(10 - round.ToString().Length) + defaultStatus.PadLeft(10,'_') 
-                                    + warLevel.ToString().PadLeft(10) + warPlayers[topPlayerIndex].Score.ToString().PadLeft(10) + 
-                                    warPlayers[bottomPlayerIndex].Score.ToString().PadLeft(10) +
-                                     dealtCardCount.ToString().PadLeft(10);
-                                
+                                string listString = game.ToString().PadRight(10 - game.ToString().Length) + gameStartTime.ToString("hh:mm:ss tt").PadLeft(20)
+                                    + gameEndTime.ToString("hh:mm:ss tt").PadLeft(18) + gameDurationString.PadLeft(14, '_')
+                                    + round.ToString().PadLeft(10 - round.ToString().Length) + defaultStatus.PadLeft(10, '_')
+                                    + warLevel.ToString().PadLeft(10) + warPlayers[topPlayerIndex].Score.ToString().PadLeft(10) +
+                                    warPlayers[bottomPlayerIndex].Score.ToString().PadLeft(10)
+                                    + highestWARLevel.ToString().PadLeft(10); 
+                                    //+ dealtCardCount.ToString().PadLeft(10);
+
                                 // add the number of rounds the game lasted to the round list
                                 roundList.Add(round);
 
@@ -1371,40 +1432,107 @@ namespace WAR_Card_Game
                         // check if all games have been autoplayed
                         if (game > numberOfGames)
                         {
-                            // if all games have been autoplayed, display in the Current Game Running label on the testForm that the final game is complete
-                            testForm.lblCurrentGameRunning.Text = "Game " + numberOfGames + " is now complete";
+                            if (numberOfGames != 0)
+                                // if all games have been autoplayed, display in the Current Game Running label on the testForm that the final game is complete
+                                testForm.lblCurrentGameRunning.Text = "Game " + numberOfGames + " is now complete";
+                            else
+                                testForm.ClearTestForm();
 
                             // reset all of the game info variables
-                            currentGame = 0;
-
-                            minRounds = 0;
-                            minIndex = 0;
-                            maxRounds = 0;
-                            maxIndex = 0;
-                            roundList.Clear();
-                            durationList.Clear();
-
-                            // reenable the clear button on the testForm
-                            testForm.btnClear.Enabled = true;
+                            ResetAllGameInfoVariables();
 
                             // reset the flag indicating that multiple games are being autoplayed
                             isMultiAutoPlaying = false;
                         }
 
-                        // reenable the Engage button on the testForm
-                        testForm.btnEngage.Enabled = true;
+
                     }
                     // check if the number of games entered on the testForm is not greater than zero
                     else
+                    {
                         // display an error message to the user(s) indicating that the number of games must be greater than zero
                         MessageBox.Show("Number entered must be greater than 0");
+                        testForm.txtBxNumberOfGameRuns.Focus();
+                        testForm.txtBxNumberOfGameRuns.SelectAll();
+                    }
                 }
                 // check if the text from the number of games text box is a valid number
                 else
+                {
                     // display an error message indicating to the user(s) that the number of games must be a valid integer number
                     MessageBox.Show("You must enter an integer number");
+                    testForm.txtBxNumberOfGameRuns.Focus();
+                    testForm.txtBxNumberOfGameRuns.SelectAll();
+                }
+
+                
+                if (currentGame > 0)    // if multiplay is stopped
+                {
+                    testForm.btnEngage.Enabled = true;
+                    testForm.btnClear.Enabled = false;
+                    testForm.btnStop.Enabled = false;
+                    testForm.btnQuit.Enabled = true;
+
+                }
+                else if (game > numberOfGames && numberOfGames != 0)    // multiplay is finished
+                {
+
+                    EnOrDisAbleClearButton();
+                    // reenable the Engage button on the testForm
+                    testForm.btnEngage.Enabled = true;
+                    testForm.btnStop.Enabled = false;
+                    testForm.btnQuit.Enabled = false;
+                }
+                else if (game > numberOfGames && numberOfGames == 0)    // quit was pressed
+                {
+                    EnOrDisAbleClearButton();
+                    // reenable the Engage button on the testForm
+                    testForm.btnEngage.Enabled = true;
+                    testForm.btnStop.Enabled = false;
+                    testForm.btnQuit.Enabled = false;
+                }
+                                                
             }
                         
+        }
+
+        public void EnOrDisAbleClearButton()
+        {
+            // if a multi-autoplaying game is ongoing
+            if (currentGame > 0)
+                // disable the Clear button
+                testForm.btnClear.Enabled = false;
+            // if a multi-autoplaying game is not ongoing
+            else
+            {
+                // if the Games Info Display listbox is empty and Number Of Game Runs textbox text is empty
+                if (testForm.lstBxGamesInfoDisplay.Items.Count == 0 && testForm.txtBxNumberOfGameRuns.Text == "")
+                {
+                    // disable the Clear button
+                    testForm.btnClear.Enabled = false;
+                }
+                // if the Games Info Display listbox is not empty or Number Of Game Runs textbox text is not empty
+                else
+                {
+                    // enable the Clear button
+                    testForm.btnClear.Enabled = true;
+                }
+            }
+        }
+
+        public void ResetAllGameInfoVariables()
+        {
+            // reset all of the game info variables
+            currentGame = 0;
+
+            minRounds = 0;
+            minIndex = 0;
+            maxRounds = 0;
+            maxIndex = 0;
+            roundList.Clear();
+            durationList.Clear();
+
+            highestWARLevel = 0;
         }
 
         // this method removes the underscores present in a target string and replaces them with spaces
@@ -1459,22 +1587,46 @@ namespace WAR_Card_Game
             return duration;
         }
 
-        private void StopAutoPlaying(object sender, EventArgs e)
+        public void StopAutoPlaying(object sender, EventArgs e)
         {
+            // stop autoplaying
             isAutoPlaying = false;
+
+            // if multi-autoplaying is ongoing
             if (isMultiAutoPlaying == true)
+                // stop multi-autoplaying
                 isMultiAutoPlaying = false;
         }
 
         async private void AutoPlayThroughToEnd(object sender, EventArgs e)
         {
-            warThreshold = 100;
+            warThreshold = MAX_WAR_LEVEL +  1;
 
             // check if autoplaying multiple games is not ongoing
-            if (currentGame == 0)                       
+            if (currentGame == 0)
+
+                // begin autoplaying
                 await AutoPlayGame(sender, e);
+
+            // if a multi-autoplaying game  is stopped
             else if (currentGame > 0)
+            {
+                //  disable the Enage button on the testform
+                testForm.btnEngage.Enabled = false;
+
+                // disable the Clear button on the testForm
+                testForm.btnClear.Enabled = false;
+
+                // enable the Stop button on the testForm
+                testForm.btnStop.Enabled = true;
+
+                // enable the Quit button on the testform
+                testForm.btnQuit.Enabled = true;
+
+                // resume multi-autoplaying
                 await AutoPlayMultipleGames(sender, e);
+                               
+            }
 
         }
 
@@ -1485,7 +1637,14 @@ namespace WAR_Card_Game
             if (currentGame == 0)
                 await AutoPlayGame(sender, e);
             else if (currentGame > 0)
+            {
+                testForm.btnEngage.Enabled = false;
+                testForm.btnClear.Enabled = false;
+                testForm.btnStop.Enabled = true;
+                testForm.btnQuit.Enabled = true;
+
                 await AutoPlayMultipleGames(sender, e);
+            }
 
         }
 
@@ -1496,7 +1655,14 @@ namespace WAR_Card_Game
             if (currentGame == 0)
                 await AutoPlayGame(sender, e);
             else if (currentGame > 0)
+            {
+                testForm.btnEngage.Enabled = false;
+                testForm.btnClear.Enabled = false;
+                testForm.btnStop.Enabled = true;
+                testForm.btnQuit.Enabled = true;
+
                 await AutoPlayMultipleGames(sender, e);
+            }
 
         }
 
@@ -1507,7 +1673,50 @@ namespace WAR_Card_Game
             if (currentGame == 0)
                 await AutoPlayGame(sender, e);
             else if (currentGame > 0)
+            {
+                testForm.btnEngage.Enabled = false;
+                testForm.btnClear.Enabled = false;
+                testForm.btnStop.Enabled = true;
+                testForm.btnQuit.Enabled = true;
+
                 await AutoPlayMultipleGames(sender, e);
+            }
+
+        }
+
+        async private void AutoPlayUntilWARLevel4(object sender, EventArgs e)
+        {
+            warThreshold = 4;
+            // check if autoplaying multiple games is not ongoing
+            if (currentGame == 0)
+                await AutoPlayGame(sender, e);
+            else if (currentGame > 0)
+            {
+                testForm.btnEngage.Enabled = false;
+                testForm.btnClear.Enabled = false;
+                testForm.btnStop.Enabled = true;
+                testForm.btnQuit.Enabled = true;
+
+                await AutoPlayMultipleGames(sender, e);
+            }
+
+        }
+
+        async private void AutoPlayUntilWARLevel5(object sender, EventArgs e)
+        {
+            warThreshold = 5;
+            // check if autoplaying multiple games is not ongoing
+            if (currentGame == 0)
+                await AutoPlayGame(sender, e);
+            else if (currentGame > 0)
+            {
+                testForm.btnEngage.Enabled = false;
+                testForm.btnClear.Enabled = false;
+                testForm.btnStop.Enabled = true;
+                testForm.btnQuit.Enabled = true;
+
+                await AutoPlayMultipleGames(sender, e);
+            }
 
         }
 
@@ -1534,6 +1743,9 @@ namespace WAR_Card_Game
                 // enable and make visible the Stop AutoPlay context menu item
                 stopAutoPlayToolStripMenuItem.Enabled = true;
                 stopAutoPlayToolStripMenuItem.Visible = true;
+
+                quitAutoPlayGameToolStripMenuItem.Enabled = true;
+                quitAutoPlayGameToolStripMenuItem.Visible = true;
 
                 // disable and make invisible the Start WAR Card Game context menu item
                 startWARCardGameToolStripMenuItem.Enabled = false;
@@ -1619,8 +1831,31 @@ namespace WAR_Card_Game
                 stopAutoPlayToolStripMenuItem.Enabled = false;
                 stopAutoPlayToolStripMenuItem.Visible = false;
 
+                quitAutoPlayGameToolStripMenuItem.Enabled = false;
+                quitAutoPlayGameToolStripMenuItem.Visible = false;
+
             }
             
+        }
+
+        private void QuitAutoPlayGame(object sender, EventArgs e)
+        {
+            // if multi-autoplaying is ongoing
+            if (isMultiAutoPlaying == true)
+                // call the tsetForm Quit button click method
+                testForm.btnQuit_Click(sender, e);
+            // if a game is autoplaying
+            else if (isAutoPlaying == true)
+            {
+                // stop the game that is autoplaying
+                StopAutoPlaying(sender, e);
+                // quit the resulting manual game
+                QuitManualGame(sender, e);
+            }
+            // neither a multi-autoplaying or autoplaying game is ongoing
+            else
+                // display an error message
+                MessageBox.Show("Attempt was made to quit an autoplay game when no autoplay game was running");
         }
 
         private bool ReadyForTransfer(int playerCardsGroupIndex, int playerWonCardsGroupIndex, int gatherX, int gatherY)
@@ -1686,14 +1921,16 @@ namespace WAR_Card_Game
             if (targetWARPlayerIndex == topPlayerIndex)
             {
                 // place the cards at coordinates to the left of the previously dealt cards so all dealt cards can be seen
-                xCoordP = centeredCardX - ((SPACING_GAP + CARD_WIDTH) * warLevel);
+                //xCoordP = centeredCardX - ((SPACING_GAP + CARD_WIDTH) * warLevel);
+                xCoordP = centeredCardX - (SPACING_GAP + CARD_WIDTH) - (SPREAD_OFFSET* warLevel);
                 yCoordP = firstCardTPY;
             }
             // if the target player is the bottom player
             else if (targetWARPlayerIndex == bottomPlayerIndex)
             {
                 // place the cards at coordinates to the right of the previously dealt cards so all dealt cards can be seen
-                xCoordP = centeredCardX + ((SPACING_GAP + CARD_WIDTH) * warLevel);
+                //xCoordP = centeredCardX + ((SPACING_GAP + CARD_WIDTH) * warLevel);
+                xCoordP = centeredCardX + (SPACING_GAP + CARD_WIDTH) + (SPREAD_OFFSET * warLevel);
                 yCoordP = firstCardBPY;
             }
 
@@ -1775,7 +2012,68 @@ namespace WAR_Card_Game
 
             }
             // if there is a WAR going on
-            else if (warLevel > 0)
+            else if (warLevel == MAX_WAR_LEVEL)
+            {
+                // if the Top Player has no cards remaining
+                if (deckOfPlayingCards[topPlayerGroupIndex].GetCount() == 0)
+                {
+                    // top player loses by default
+                    // set the flag that indicates that a game default has occurred
+                    gameDefault = true;
+
+                    // handle the game default
+                    GameDefault(topPlayerIndex);
+
+                }
+                // if the Bottom Player has no cards remaining
+                else if (deckOfPlayingCards[bottomPlayerGroupIndex].GetCount() == 0)
+                {
+                    // bottom player loses by default
+                    // set the flag that indicates that a game default has occurred
+                    gameDefault = true;
+
+                    // handle the game default
+                    GameDefault(bottomPlayerIndex);
+
+                }
+                // if both players have one card remaining
+                else if (deckOfPlayingCards[topPlayerGroupIndex].GetCount() == 1 && deckOfPlayingCards[bottomPlayerGroupIndex].GetCount() == 1)
+                {
+                    // turn up the Top Player's last card
+                    deckOfPlayingCards[topPlayerGroupIndex].Group[0].TurnCardUp();
+
+                    // display the face image of the last card
+                    deckOfPlayingCards[topPlayerGroupIndex].Group[0].DisplayCardImage();
+
+                    // transfer the last card from the Top Player's cards group to the dealt cards group
+                    TransferFirstCardOfFirstGroupToSecondGroup(topPlayerGroupIndex, dealtCardsGroupIndex);
+
+                    // set the top player's comparison card CardReference Group property
+                    warPlayers[topPlayerIndex].ComparisonCard.Group = dealtCardsGroupIndex;
+
+                    // set the top player's comparison card CardReference Card property
+                    warPlayers[topPlayerIndex].ComparisonCard.Card += 3;
+
+
+                    // turn up the bottom Player's last card
+                    deckOfPlayingCards[bottomPlayerGroupIndex].Group[0].TurnCardUp();
+
+                    // display the face image of the last card
+                    deckOfPlayingCards[bottomPlayerGroupIndex].Group[0].DisplayCardImage();
+
+                    // transfer the last card from the bottom Player's cards group to the dealt cards group
+                    TransferFirstCardOfFirstGroupToSecondGroup(bottomPlayerGroupIndex, dealtCardsGroupIndex);
+
+                    // set the bottom player's comparison card CardReference Group property
+                    warPlayers[bottomPlayerIndex].ComparisonCard.Group = dealtCardsGroupIndex;
+
+                    // set the bottom player's comparison card CardReference Card property
+                    warPlayers[bottomPlayerIndex].ComparisonCard.Card += 2;
+
+                }
+            }
+
+            else if (warLevel > 0 && warLevel < MAX_WAR_LEVEL)
             {
                 // determine if the Top Player has cards remaining before trying to deal his or her down card
                 if (ReadyForTransfer(topPlayerGroupIndex, topPlayerWonCardsGroupIndex, centeredCardX, setUpTPY))
@@ -1944,6 +2242,15 @@ namespace WAR_Card_Game
                     lblCommentary.Text = "Top Player " + warPlayers[topPlayerIndex].Name +
                                 " doesn't have enough cards left for the war so Bottom Player " + warPlayers[bottomPlayerIndex].Name +
                                 " wins the game by default!";
+
+                    lblWinnerBanner.Text = warPlayers[bottomPlayerIndex].Name + " WON!!!";
+
+                    //center banner in application window
+                    CenterBannerLabel(lblWinnerBanner);
+
+                    lblWinnerBanner.BringToFront();
+
+                    lblWinnerBanner.Visible = true;
                 }
                 else if (targetPlayerIndex_NoCards == bottomPlayerIndex)
                 {
@@ -1951,6 +2258,15 @@ namespace WAR_Card_Game
                     lblCommentary.Text = "Bottom Player " + warPlayers[bottomPlayerIndex].Name +
                                     " doesn't have enough cards left for the war so Top Player " + warPlayers[topPlayerIndex].Name +
                                     " wins the game by default!";
+
+                    lblWinnerBanner.Text = warPlayers[topPlayerIndex].Name + " WON!!!";
+
+                    //center banner in application window
+                    CenterBannerLabel(lblWinnerBanner);
+
+                    lblWinnerBanner.BringToFront();
+
+                    lblWinnerBanner.Visible = true;
                 }
 
             }
@@ -2071,6 +2387,9 @@ namespace WAR_Card_Game
                     // set the warlevel to one
                     warLevel = 1;
 
+                    if (warLevel > highestWARLevel)
+                        highestWARLevel = warLevel;
+
                     // display in the WAR label an announcement that there's a WAR now
                     lblWAR.Text = "WAR!!!";
 
@@ -2081,19 +2400,40 @@ namespace WAR_Card_Game
                     lblCommentary.Text = "WAR level: 1!";
                 }
                 // check if there is a WAR presently ongoing
-                else if (warLevel > 0)
+                else if (warLevel == MAX_WAR_LEVEL)
+                {
+                    // set the commentary text to display a message telling the game is a draw
+                    lblCommentary.Text = "Since both player's last cards are equal, the game is a DRAW!!!";
+
+                    lblWinnerBanner.Text = "DRAW!!!";
+
+                    // center banner in application form
+                    CenterBannerLabel(lblWinnerBanner);
+
+                    lblWinnerBanner.BringToFront();
+
+                    lblWinnerBanner.Visible = true;
+
+                    // perform tasks to end the game and prepare for resetting to play another game
+                    End();
+                }
+
+                else if (warLevel > 0 && warLevel < MAX_WAR_LEVEL)
                 {
                     // raise the WAR level by one (escalate the WAR)
                     warLevel++;
 
+                    if (warLevel > highestWARLevel)
+                        highestWARLevel = warLevel;
+
                     // display in the WAR label an announcement that there's another WAR now
-                    lblWAR.Text = "WAR AGAIN!!!";
+                    lblWAR.Text = "WAR LEVEL: " + warLevel + "!!!";
 
                     // center the WAR label on the application form
                     CenterWARLabel();
 
                     // display commentary announcing the new WAR level
-                    lblCommentary.Text = "WAR level: " + warLevel;
+                    lblCommentary.Text = "WAR level: " + warLevel + "!!!";
                     
                 }
 
@@ -2201,16 +2541,26 @@ namespace WAR_Card_Game
                 if (isGamePlaying == true)
                 {
                     // if a game is still playing
-                    if (round >= drawMaxRounds)
+                    if (round >= DRAW_MAX_ROUNDS)
                     {
                         int lead = 0;
 
                         if (warPlayers[topPlayerIndex].Score > warPlayers[bottomPlayerIndex].Score)
                         {
                             lead = warPlayers[topPlayerIndex].Score - warPlayers[bottomPlayerIndex].Score;
-                            lblCommentary.Text = "Sorry folks, we've reached the round limit at which we have to call the game!  " 
-                                + warPlayers[topPlayerIndex].Identifier + " " + warPlayers[topPlayerIndex].Name + " won by " + lead 
+                            lblCommentary.Text = "Sorry folks, we've reached the round limit at which we have to call the game!  "
+                                + warPlayers[topPlayerIndex].Identifier + " " + warPlayers[topPlayerIndex].Name + " won by " + lead
                                 + " points!";
+
+                            lblWinnerBanner.Text = warPlayers[topPlayerIndex].Name + " WON!!!";
+
+                            //center banner on application form
+                            CenterBannerLabel(lblWinnerBanner);
+
+                            lblWinnerBanner.BringToFront();
+
+                            lblWinnerBanner.Visible = true;
+
 
                         }
                         else if (warPlayers[bottomPlayerIndex].Score > warPlayers[topPlayerIndex].Score)
@@ -2219,13 +2569,33 @@ namespace WAR_Card_Game
                             lblCommentary.Text = "Sorry folks, we've reached the round limit at which we have to call the game!  "
                                 + warPlayers[bottomPlayerIndex].Identifier + " " + warPlayers[bottomPlayerIndex].Name + " won by " + lead
                                 + " points!";
+
+                            lblWinnerBanner.Text = warPlayers[bottomPlayerIndex].Name + " WON!!!";
+
+                            //center banner on application form
+                            CenterBannerLabel(lblWinnerBanner);
+
+                            lblWinnerBanner.BringToFront();
+
+                            lblWinnerBanner.Visible = true;
                         }
                         else
+                        {
                             lblCommentary.Text = "Sorry folks, since noone's ahead and we've reached the round limit, we have to call the game a draw!";
+
+                            lblWinnerBanner.Text = "DRAW!!!";
+
+                            //center banner on application form
+                            CenterBannerLabel(lblWinnerBanner);
+
+                            lblWinnerBanner.BringToFront();
+
+                            lblWinnerBanner.Visible = true;
+                        }
 
                         End();
                     }
-                    else if (round < drawMaxRounds)
+                    else if (round < DRAW_MAX_ROUNDS)
                     {
                         // update the output label
                         UpdateOutputLabel();
@@ -2278,17 +2648,49 @@ namespace WAR_Card_Game
             
         }
 
+        private void CenterBannerLabel(Label targetLabel)
+        {
+            // get the size of the application form
+            Size formSize = this.Size;
+
+            // get the size of the WAR label
+            Size BannerLabelSize = targetLabel.Size;
+
+            // get the WAR label's location
+            Point BannerLabelLocation = targetLabel.Location;
+
+            // calculate the X coordinate that will center the WAR label horizontally on the application form
+            int blCenteredX = (formSize.Width - BannerLabelSize.Width) / 2;
+
+            // set the WARLabelLocation's X coordinate to the value that will center the WAR Label
+            BannerLabelLocation.X = blCenteredX;
+
+            // set the WAR label Location property to the location that will center the WAR label
+            targetLabel.Location = BannerLabelLocation;
+
+        }
+
+
         private void EndGame(int winnerPlayerIndex)
         {
             // set the commentary text to display a message telling who won the game
             lblCommentary.Text = warPlayers[winnerPlayerIndex].Identifier + " " + warPlayers[winnerPlayerIndex].Name + " has won the game!";
+
+            lblWinnerBanner.Text = warPlayers[winnerPlayerIndex].Name + " WON!!!";
+
+            // center banner in application form
+            CenterBannerLabel(lblWinnerBanner);
+
+            lblWinnerBanner.BringToFront();
+
+            lblWinnerBanner.Visible = true;
 
             // perform tasks to end the game and prepare for resetting to play another game
             End();
 
         }
 
-        private void End()
+        public void End()
         {
             // set the game end time to the current time
             gameEndTime = DateTime.Now;
@@ -2335,10 +2737,10 @@ namespace WAR_Card_Game
             awaitingReset = true;
 
             // set the dealt card count for the multiple autoplay game display in the test form
-            dealtCardCount = deckOfPlayingCards[dealtCardsGroupIndex].GetCount();
+            //dealtCardCount = deckOfPlayingCards[dealtCardsGroupIndex].GetCount();
         }
 
-        private void ResetGame(object sender, EventArgs e)
+        public void ResetGame(object sender, EventArgs e)
         {
             // check to see if the game is waiting to be reset
             if (awaitingReset == true)
@@ -2359,6 +2761,9 @@ namespace WAR_Card_Game
 
                 // make the Compare Cards context menu item invisible
                 compareCardsToolStripMenuItem.Visible = false;
+
+                quitManualGameToolStripMenuItem.Enabled = false;
+                quitManualGameToolStripMenuItem.Visible = false;
 
                 // transfer cards in the following groups back to the deck group 
                 // top player's cards
@@ -2433,6 +2838,11 @@ namespace WAR_Card_Game
                 // make the Round label invisible
                 lblRound.Visible = false;
 
+                if (lblWAR.Visible == true)
+                    lblWAR.Visible = false;
+
+                lblWinnerBanner.Visible = false;
+
                 // reset the flag that indicates whether or not the game is waiting to be reset
                 awaitingReset = false;
 
@@ -2499,7 +2909,7 @@ namespace WAR_Card_Game
                 // if up to 4 keys have been pressed, store the key codes to the key string
                 keyString += keyCode.ToString();
                 //lblOutput.Text = "Key was pressed with keyCode = " + keyCode.ToString() +
-                    //"\n keyString = " + keyString;
+                  //  "\n keyString = " + keyString;
             }
 
             // check if four keys have been pressed 
@@ -2522,6 +2932,8 @@ namespace WAR_Card_Game
 
                         // display the testForm
                         testForm.Show();
+
+                        EnOrDisAbleClearButton();
                     }
                     // if the  testForm has  been instantiated
                     else if (testForm != null)
@@ -2534,6 +2946,8 @@ namespace WAR_Card_Game
 
                         // display the new testform
                         testForm.Show();
+
+                        EnOrDisAbleClearButton();
                     }
                     
                 }

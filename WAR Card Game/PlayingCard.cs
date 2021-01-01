@@ -18,27 +18,28 @@ namespace WAR_Card_Game
         //public event EventHandler ClearOutputLabel;
         public EventHandler<string> ClearOutputLabel;
 
-        private int _cardNumber;
-        public PictureBox pctrBxCard;
-        public Image cardFace;
-        public static Image cardBack;
-        private bool cardFaceUp = true, pbCardIsDragging = false;
-        private Point pctrBxPoint; //, mousePoint;
-        private int current_pbCardX, current_pbCardY;
+        private int _cardNumber;                                        // number from 0 - 51 that uniquely identifies the card in the deck
+        public PictureBox pctrBxCard;                                   // picturebox on the application form that contains the image of the card
+        public Image cardFace;                                          // image of the face of the card
+        public static Image cardBack;                                   // image of the back of the card (is shared between all the cards)
+        private bool cardFaceUp = true,                                 // flag indicating whether or not the card is face up or not
+            pbCardIsDragging = false;                                   // flag indicating whether or not the card is being dragged by the mouse
+        private Point pctrBxPoint; //, mousePoint;                      // Point used for setting the location of the card's picturebox
+        private int current_pbCardX, current_pbCardY;                   // X and Y coordinates for the location of the cad's picturebox
 
         // defined as Properties
-        private Suit _suit;
-        private FaceValue _faceValue;
-        private bool _selected;
+        private Suit _suit;                                             // suit of the card
+        private FaceValue _faceValue;                                   // face value of the card
+        private bool _selected;                                         // flag indicating whether or not the card is selected by the user
 
-        private Padding pctrBxPadding;
+        private Padding pctrBxPadding;                                  // padding of the picturebox (used for selecting the card)
 
-        private Size originalSize;
-        private Size selectedSize;
+        private Size originalSize;                                      // actual size of the card
+        private Size selectedSize;                                      // size of the card when selected (larger to keep the card the same size when selected)
 
-        private const int selectionLineThickness = 5;
+        private const int SELECTION_LINE_THICKNESS = 5;                 // number of pixels thickness of the selection line around the card
 
-        public PlayingCard(int cardnumber)
+        public PlayingCard(int cardnumber)                              // constructor method
         {
             _cardNumber = cardnumber;
             DetermineFaceValue();
@@ -60,8 +61,8 @@ namespace WAR_Card_Game
             pctrBxCard.SizeMode = PictureBoxSizeMode.StretchImage;
 
             originalSize = new Size(pctrBxCard.ClientRectangle.Width, pctrBxCard.ClientRectangle.Height);
-            selectedSize = new Size(pctrBxCard.ClientRectangle.Width + (selectionLineThickness * 2),
-                pctrBxCard.ClientRectangle.Height + (selectionLineThickness * 2));
+            selectedSize = new Size(pctrBxCard.ClientRectangle.Width + (SELECTION_LINE_THICKNESS * 2),
+                pctrBxCard.ClientRectangle.Height + (SELECTION_LINE_THICKNESS * 2));
 
             // add the event handlers to the card's picturebox
             pctrBxCard.MouseDoubleClick += PctrBxCard_MouseDoubleClick;
@@ -130,15 +131,15 @@ namespace WAR_Card_Game
             // setting the padding to five makes the card look
             // like it is outlined in the  background color
             pctrBxPadding = new Padding();
-            pctrBxPadding.All = selectionLineThickness;
+            pctrBxPadding.All = SELECTION_LINE_THICKNESS;
 
             pctrBxCard.Padding = pctrBxPadding;
                                        
             // relocate the card
             //Point pctrBxPointS = new Point();
                 
-            pctrBxPoint.X = pctrBxCard.Location.X - selectionLineThickness;
-            pctrBxPoint.Y = pctrBxCard.Location.Y - selectionLineThickness;
+            pctrBxPoint.X = pctrBxCard.Location.X - SELECTION_LINE_THICKNESS;
+            pctrBxPoint.Y = pctrBxCard.Location.Y - SELECTION_LINE_THICKNESS;
             
             pctrBxCard.Location = pctrBxPoint;
 
@@ -163,8 +164,8 @@ namespace WAR_Card_Game
                 // relocate the card
                 //pctrBxPoint = new Point();
 
-                pctrBxPoint.X = pctrBxCard.Location.X + selectionLineThickness;
-                pctrBxPoint.Y = pctrBxCard.Location.Y + selectionLineThickness;
+                pctrBxPoint.X = pctrBxCard.Location.X + SELECTION_LINE_THICKNESS;
+                pctrBxPoint.Y = pctrBxCard.Location.Y + SELECTION_LINE_THICKNESS;
 
                 pctrBxCard.Location = pctrBxPoint;
 
@@ -259,8 +260,8 @@ namespace WAR_Card_Game
             //pctrBxPoint = new Point(xCoord, yCoord);
             if (_selected)
             {
-                pctrBxPoint.X = xCoord - selectionLineThickness;
-                pctrBxPoint.Y = yCoord - selectionLineThickness;
+                pctrBxPoint.X = xCoord - SELECTION_LINE_THICKNESS;
+                pctrBxPoint.Y = yCoord - SELECTION_LINE_THICKNESS;
             }
             else
             {
@@ -277,8 +278,8 @@ namespace WAR_Card_Game
             //return cardLocationPoint;
             if (_selected)
             {
-                pctrBxPoint.X = pctrBxCard.Location.X + selectionLineThickness;
-                pctrBxPoint.Y = pctrBxCard.Location.Y + selectionLineThickness;
+                pctrBxPoint.X = pctrBxCard.Location.X + SELECTION_LINE_THICKNESS;
+                pctrBxPoint.Y = pctrBxCard.Location.Y + SELECTION_LINE_THICKNESS;
 
                 return pctrBxPoint;
             }

@@ -22,7 +22,7 @@ namespace WAR_Card_Game
 
         public CardReference(int group, int card)
         {
-            _group = group;             // with this constructor, the card reference is created refering to a particular card
+            _group = group;             // with this constructor, the card reference is created referring to a particular card
             _card = card;
         }
 
