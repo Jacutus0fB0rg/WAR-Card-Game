@@ -65,22 +65,57 @@ namespace WAR_Card_Game
                 // Declare a StreamReader variable.
                 StreamReader inputFile;
 
-                // Open the file and get a StreamReader object.
-                inputFile = File.OpenText(warPlayerNamesFileName);
-
-                // while the end of stream has not been reached
-                while (!inputFile.EndOfStream)
+                if (File.Exists(warPlayerNamesFileName))
                 {
-                    // read a line from the file
-                    fileLine = inputFile.ReadLine();
 
-                    // add the line from the file to the WAR player names list
-                    warPlayerNames.Add(fileLine);
+                    // Open the file and get a StreamReader object.
+                    inputFile = File.OpenText(warPlayerNamesFileName);
+
+                    // while the end of stream has not been reached
+                    while (!inputFile.EndOfStream)
+                    {
+                        // read a line from the file
+                        fileLine = inputFile.ReadLine();
+
+                        // add the line from the file to the WAR player names list
+                        warPlayerNames.Add(fileLine);
+                    }
+
+                    // Close the file.
+                    inputFile.Close();
                 }
+                else
+                    WriteDefaultWARPlayerNames();
+            }
+            // if an error occurs
+            catch (Exception ex)
+            {
+                // display the error's message
+                MessageBox.Show(ex.Message);
+                
+            }
+        }
+
+        private void WriteDefaultWARPlayerNames()
+        {
+            // attempt to write to the WAR player's names file
+            try
+            {
+                // Declare a StreamWriter variable.
+                StreamWriter outFile;
+
+                // Open the file and get a StreamWriter object.
+                outFile = File.CreateText(warPlayerNamesFileName);
+
+                // write the validated names to the WARPlayerNames.txt file
+                outFile.WriteLine("Player 1");
+                warPlayerNames.Add("Player 1");
+                outFile.WriteLine("Player 2");
+                warPlayerNames.Add("Player 2");
 
                 // Close the file.
-                inputFile.Close();
-
+                outFile.Close();
+                
             }
             // if an error occurs
             catch (Exception ex)
